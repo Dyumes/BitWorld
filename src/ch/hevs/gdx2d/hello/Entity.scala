@@ -4,8 +4,10 @@ import ch.hevs.gdx2d.lib.GdxGraphics
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector2
 
-abstract class Entity (var x: Float, var y: Float, val width: Float, val height : Float) {
-  def update(dt: Float, playerPos: Vector2 = null): Unit
+import scala.collection.mutable.ArrayBuffer
+
+abstract class Entity (var x: Float, var y: Float, val width: Float, val height : Float, val nbr: Int) {
+  def update(dt: Float, playerPos: Vector2 = null, enemies : ArrayBuffer[Enemy] = null): Unit
 
   def draw(g: GdxGraphics): Unit = {
     // Default, draw a rectangle

@@ -4,13 +4,15 @@ import ch.hevs.gdx2d.lib.GdxGraphics
 import com.badlogic.gdx.{Gdx, Input}
 import com.badlogic.gdx.graphics.{Color, OrthographicCamera}
 import com.badlogic.gdx.math.{Interpolation, Vector2}
+
+import scala.collection.mutable.ArrayBuffer
 /**
  *
  * A Player class for controlling the player and the camera following all along
  *
  */
-
-class Ennemy(x: Float, y: Float, width: Float, height: Float) extends Entity (x, y, width, height){
+// TODO Nbr is temporary, need to be change when real enemies are set
+class Enemy(x: Float, y: Float, width: Float, height: Float, nbr: Int) extends Entity (x, y, width, height, nbr){
   private val position = new Vector2(x, y)
   private val speed = 200 // pixels/second
 
@@ -30,10 +32,22 @@ class Ennemy(x: Float, y: Float, width: Float, height: Float) extends Entity (x,
     return hp
   }
 
-  // Update the position of the player matching to input
-  override def update(dt: Float, playerPos : Vector2): Unit = {
+  def isAlive(): Boolean = {
     if (hp <= 0){
-      println("ENNEMY DEAD")
+      false
+    } else {
+      true
+    }
+  }
+
+  def getSize() : Vector2 = {
+    return new Vector2(width, height)
+  }
+
+  // Update the position of the player matching to input
+  def update(dt: Float, playerPos : Vector2, enemies : ArrayBuffer[Enemy] = null): Unit = {
+    if (isAlive() == false){
+      println("ENEMY DEAD")
     } else {
       if (knockbackTimer > 0) {
         knockbackTimer -= dt
@@ -58,6 +72,8 @@ class Ennemy(x: Float, y: Float, width: Float, height: Float) extends Entity (x,
     g.drawFilledRectangle(position.x, position.y + 100, hp, 8, 0)
     g.setColor(Color.RED) // HitBox
     g.drawFilledRectangle(position.x, position.y, width, height, 0)
+    g.setColor(Color.WHITE)
+    g.drawString(position.x, position.y, s"$nbr")
   }
 
   override def getPosition: Vector2 = position.cpy()
@@ -66,6 +82,15 @@ class Ennemy(x: Float, y: Float, width: Float, height: Float) extends Entity (x,
     hp -= 10
     knockbackDir = new Vector2(position).sub(player.getPosition).nor()
     knockbackTimer = knockbackDuration
+  }
+
+  def getHit(projectile: Projectile): Unit = {
+    hp -= projectile.damage
+    projectile.onHit()
+  }
+
+  def takeDamage(dmg : Int): Unit = {
+    hp -= dmg
   }
 
   def pushAway(pushVec: Vector2): Unit = { // Avoid collision between ennemies

@@ -11,12 +11,6 @@ import ch.hevs.gdx2d.hello.Player
 import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
 
-/**
- * Hello World demo in Scala
- *
- * @author Pierre-André Mudry (mui)
- * @version 1.0
- */
 object HelloWorldScala {
 
   def main(args: Array[String]): Unit = {
@@ -28,26 +22,27 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
   private var imgBitmap: BitmapImage = null
   private var background : BitmapImage = null
 
-  private val player : Player = new Player(100, 100, 100, 100)
-  private val enemies : ArrayBuffer[Ennemy] = ArrayBuffer[Ennemy]()
+  private val player : Player = new Player(100, 100, 100, 100, 0)
+  private val enemies : ArrayBuffer[Enemy] = ArrayBuffer[Enemy]()
 
   override def onInit(): Unit = {
     setTitle("BitWorld")
     // Load a custom image (or from the lib "res/lib/icon64.png")
     imgBitmap = new BitmapImage("data/images/ISC_logo.png")
-    background = new BitmapImage("data/images/placeholder_background.jpg")
+    background = new BitmapImage("data/images/placeholder_background.png")
 
-    generateEnemies(5)
+    generateEnemies(20)
   }
 
   def generateEnemies(nbr: Int): Unit = {
     for (ennemy <- 0 until nbr){
       val x = Random.nextFloat() * getWindowWidth
       val y = Random.nextFloat() * getWindowHeight
-      val en = new Ennemy(x, y, 100, 100)
+      val en = new Enemy(x, y, 100, 100, ennemy)
       enemies += en
     }
   }
+
   /**
    * Some animation related variables
    */
@@ -57,6 +52,7 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
   final private val MIN_ANGLE: Float = -20
   final private val MAX_ANGLE: Float = 20
 
+
   /**
    * This method is called periodically by the engine
    *
@@ -65,7 +61,21 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
 
   override def onGraphicRender(g: GdxGraphics): Unit = {
     val dt = Gdx.graphics.getDeltaTime
-    player.update(dt)
+    println(s"dt : $dt")
+    player.getClosestEnemy(enemies)
+    player.update(dt, null, enemies)
+
+
+    if (Gdx.input.isKeyJustPressed(Keys.SPACE)) {
+      println("SPACE PRESSED")
+      val newProjectile = player.attack(player.getClosestEnemy(enemies))
+      if (newProjectile != null) player.projectiles += newProjectile
+    }
+
+    player.projectiles.foreach(_.update(dt))
+    player.projectiles.foreach(_.draw(g))
+
+    player.projectiles.filterInPlace(p => p.active && p.position.dst(player.getPosition) < 2000)
 
     enemies.filterInPlace(_.getHp() > 0)
     for (en <- enemies.indices){
@@ -73,9 +83,16 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
         enemies.remove(en)
       }
       enemies(en).update(dt, player.getPosition)
-      val distance = enemies(en).getPosition.dst(player.getPosition)
+      val distanceToPlayer = enemies(en).getPosition.dst(player.getPosition)
 
-      if (distance < 100f){
+      for (projectil <- player.projectiles){
+        val distanceToProjectile = enemies(en).getPosition.dst(projectil.position)
+        if (distanceToProjectile < enemies(en).width){
+          enemies(en).getHit(projectil)
+        }
+      }
+
+      if (distanceToPlayer < player.width){
         player.getHit(enemies(en))
         enemies(en).getHit(player)
       }
@@ -86,7 +103,7 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
         val en2 = enemies(j)
         val direction = en1.getPosition.sub(en2.getPosition)
         val distance = direction.len()
-        val minDistance = 100f
+        val minDistance = enemies(i).width
 
         if (distance < minDistance && distance > 0){
           val push = direction.nor().scl((minDistance-distance) * 0.5f)
@@ -100,7 +117,7 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
     // Clears the screen
     g.clear()
 
-    g.drawPicture(0, 0, background)
+    //g.drawPicture(0, 0, background)
     // Compute the angle of the image using an elastic interpolation
     val t = computePercentage
     val angle: Float = Interpolation.sine.apply(MIN_ANGLE, MAX_ANGLE, t)
@@ -116,6 +133,7 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
     for (en <- enemies){
       en.draw(g)
     }
+    player.attack(player.getClosestEnemy(enemies)).draw(g)
   }
 
   /**
