@@ -7,6 +7,7 @@ import ch.hevs.gdx2d.lib.GdxGraphics
 import ch.hevs.gdx2d.desktop.PortableApplication
 import com.badlogic.gdx.Input.Keys
 import ch.hevs.gdx2d.hello.Player
+import ch.hevs.gdx2d.hello.WaveManager
 
 import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
@@ -24,20 +25,34 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
 
   private val player : Player = new Player(100, 100, 100, 100, 0)
   private val enemies : ArrayBuffer[Enemy] = ArrayBuffer[Enemy]()
-
+  private val WaveManager = new WaveManager()
   override def onInit(): Unit = {
     setTitle("BitWorld")
     // Load a custom image (or from the lib "res/lib/icon64.png")
     imgBitmap = new BitmapImage("data/images/ISC_logo.png")
     background = new BitmapImage("data/images/placeholder_background.png")
 
-    generateEnemies(20)
+    generateEnemies(3)
   }
 
   def generateEnemies(nbr: Int): Unit = {
+    /*val radius : Float = 1500
+    val playerPos = player.getPosition
+    val angleOffset = Random.nextFloat() * 2 * Math.PI.toFloat
     for (ennemy <- 0 until nbr){
-      val x = Random.nextFloat() * getWindowWidth
-      val y = Random.nextFloat() * getWindowHeight
+      val angle = angleOffset + 2 * Math.PI.toFloat * ennemy / nbr
+      val x = playerPos.x + radius * Math.cos(angle).toFloat
+      val y = playerPos.y + radius * Math.sin(angle).toFloat
+      val en = new Enemy(x, y, 100, 100, ennemy)
+      enemies += en
+    }
+     */
+    val radius : Float = 800
+    val playerPos = player.getPosition
+    for (ennemy <- 0 until nbr){
+      val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * ennemy / nbr
+      val x = playerPos.x + radius * Math.cos(angle).toFloat
+      val y = playerPos.y + radius * Math.sin(angle).toFloat
       val en = new Enemy(x, y, 100, 100, ennemy)
       enemies += en
     }
@@ -133,6 +148,12 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
     for (en <- enemies){
       en.draw(g)
     }
+
+    WaveManager.update(enemies)
+    if(enemies.isEmpty) {
+      generateEnemies(WaveManager.generateWave())
+    }
+
     player.attack(player.getClosestEnemy(enemies)).draw(g)
   }
 
