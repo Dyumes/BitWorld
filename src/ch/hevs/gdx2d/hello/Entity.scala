@@ -6,7 +6,7 @@ import com.badlogic.gdx.math.Vector2
 
 import scala.collection.mutable.ArrayBuffer
 
-abstract class Entity (var x: Float, var y: Float, val width: Float, val height : Float, val nbr: Int) {
+abstract class Entity (var x: Float, var y: Float, val width: Float, val height : Float, var speed: Int, var healthPoint: Int, val nbr: Int) {
   def update(dt: Float, playerPos: Vector2 = null, enemies : ArrayBuffer[Enemy] = null): Unit
 
   def draw(g: GdxGraphics): Unit = {

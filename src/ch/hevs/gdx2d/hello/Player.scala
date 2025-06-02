@@ -12,11 +12,10 @@ import scala.collection.mutable.ArrayBuffer
  *
  */
 
-class Player(x: Float, y: Float, width: Float, height: Float, nbr : Int) extends Entity (x, y, width, height, nbr){
+class Player(x: Float, y: Float, width: Float, height: Float, speed: Int, healthPoint: Int, nbr : Int) extends Entity (x, y, width, height, speed, healthPoint, nbr){
   private val position = new Vector2(x, y)
-  private val speed = 400 // pixels/second
 
-  private var hp : Int = 200
+  private var hp = healthPoint
 
   private var knockbackDir = new Vector2(0, 0)
   private var knockbackTimer = 0f
@@ -30,7 +29,7 @@ class Player(x: Float, y: Float, width: Float, height: Float, nbr : Int) extends
   def getClosestEnemy(enemies: ArrayBuffer[Enemy]): Enemy = {
     if (enemies.size == 0){
       println("NO MORE ENEMIES")
-      var fictifEnemy = new Enemy(0, 0, 0, 0, 0)
+      var fictifEnemy = new Enemy(0, 0, 0, 0, 0, 0, 0)
       return fictifEnemy
     } else {
       var closestEn: Enemy = enemies(0)

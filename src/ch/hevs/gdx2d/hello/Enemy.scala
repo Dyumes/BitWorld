@@ -12,11 +12,11 @@ import scala.collection.mutable.ArrayBuffer
  *
  */
 // TODO Nbr is temporary, need to be change when real enemies are set
-class Enemy(x: Float, y: Float, width: Float, height: Float, nbr: Int) extends Entity (x, y, width, height, nbr){
+class Enemy(x: Float, y: Float, width: Float, height: Float, speed: Int, healthPoint: Int, nbr: Int) extends Entity (x, y, width, height, speed, healthPoint, nbr){
   private val position = new Vector2(x, y)
-  private val speed = 200 // pixels/second
 
-  private var hp : Int = 100
+  private var hp = healthPoint
+
   private val dmg : Int = 10
 
   private var knockbackDir = new Vector2(0, 0)

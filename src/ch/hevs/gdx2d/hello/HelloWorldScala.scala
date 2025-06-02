@@ -22,7 +22,7 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
   private var imgBitmap: BitmapImage = null
   private var background : BitmapImage = null
 
-  private val player : Player = new Player(100, 100, 100, 100, 0)
+  private val player : Player = new Player(100, 100, 100, 100, 300, 200, 0)
   private val enemies : ArrayBuffer[Enemy] = ArrayBuffer[Enemy]()
 
   override def onInit(): Unit = {
@@ -34,11 +34,12 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
     generateEnemies(20)
   }
 
+
   def generateEnemies(nbr: Int): Unit = {
     for (ennemy <- 0 until nbr){
       val x = Random.nextFloat() * getWindowWidth
       val y = Random.nextFloat() * getWindowHeight
-      val en = new Enemy(x, y, 100, 100, ennemy)
+      val en = new Enemy(x, y, 100, 100, 300, 100, ennemy)
       enemies += en
     }
   }
