@@ -7,6 +7,7 @@ import ch.hevs.gdx2d.lib.GdxGraphics
 import ch.hevs.gdx2d.desktop.PortableApplication
 import com.badlogic.gdx.Input.Keys
 import ch.hevs.gdx2d.hello.Player
+import ch.hevs.gdx2d.hello.WaveManager
 
 import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
@@ -22,8 +23,9 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
   private var imgBitmap: BitmapImage = null
   private var background : BitmapImage = null
 
-  private val player : Player = new Player(100, 100, 100, 100, 300, 200, 0)
+  private val player : Player = new Player(100, 100, 100, 100, 300, 200, 20, 0)
   private val enemies : ArrayBuffer[Enemy] = ArrayBuffer[Enemy]()
+  private val Wave = new WaveManager
 
   override def onInit(): Unit = {
     setTitle("BitWorld")
@@ -31,19 +33,22 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
     imgBitmap = new BitmapImage("data/images/ISC_logo.png")
     background = new BitmapImage("data/images/placeholder_background.png")
 
-    generateEnemies(20)
+
   }
 
 
-  def generateEnemies(nbr: Int): Unit = {
-    for (ennemy <- 0 until nbr){
+  /*
+
+  def generateEnemies(nbr: Int): Unit = {    for (ennemy <- 0 until nbr){
       val x = Random.nextFloat() * getWindowWidth
       val y = Random.nextFloat() * getWindowHeight
-      val en = new Enemy(x, y, 100, 100, 300, 100, ennemy)
+      val en = new Enemy(x, y, 100, 100, 300, 100, 10, ennemy)
       enemies += en
     }
+
   }
 
+   */
   /**
    * Some animation related variables
    */
@@ -62,16 +67,10 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
 
   override def onGraphicRender(g: GdxGraphics): Unit = {
     val dt = Gdx.graphics.getDeltaTime
+    Wave.globalEnemiesGeneration(enemies, player, dt)
     println(s"dt : $dt")
     player.getClosestEnemy(enemies)
     player.update(dt, null, enemies)
-
-
-    if (Gdx.input.isKeyJustPressed(Keys.SPACE)) {
-      println("SPACE PRESSED")
-      val newProjectile = player.attack(player.getClosestEnemy(enemies))
-      if (newProjectile != null) player.projectiles += newProjectile
-    }
 
     player.projectiles.foreach(_.update(dt))
     player.projectiles.foreach(_.draw(g))
@@ -134,7 +133,8 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
     for (en <- enemies){
       en.draw(g)
     }
-    player.attack(player.getClosestEnemy(enemies)).draw(g)
+    player.attack(player.getClosestEnemy(enemies), dt).draw(g)
+
   }
 
   /**

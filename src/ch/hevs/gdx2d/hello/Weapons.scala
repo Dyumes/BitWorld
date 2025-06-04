@@ -17,16 +17,20 @@ abstract class Weapon(val name: String, val damage: Int) {
 class Bow() extends Weapon("Bow", 20){
   override val range : Float = 1000
   override val dmg : Int = 20
-  private val attackSpeed : Float = 500
+  private val projectilSpeed : Float = 500
 
   override def attack(position: Vector2, direction: Vector2): Projectile = {
     println("BOW ATTACK")
-    new Projectile(position.cpy(), direction.nor(), "arrow", attackSpeed, dmg, 1)
+    new Projectile(position.cpy(), direction.nor(), "arrow", projectilSpeed, dmg, 1)
   }
 
   def isEquiped(): Boolean = {
     return false
   }
+}
+
+class Spear() extends Weapon("Spear", 30){
+  override val range : Float = 1000
 }
 
 class Projectile(
@@ -44,6 +48,7 @@ class Projectile(
     pierced -= 1
     if (pierced == 0) return active = false
   }
+
 
   def update(dt: Float) : Unit = {
     position.x += direction.x * speed * dt

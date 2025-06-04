@@ -12,10 +12,22 @@ import scala.collection.mutable.ArrayBuffer
  *
  */
 
-class Player(x: Float, y: Float, width: Float, height: Float, speed: Int, healthPoint: Int, nbr : Int) extends Entity (x, y, width, height, speed, healthPoint, nbr){
+class Player(
+              x: Float,
+              y: Float,
+              width: Float,
+              height: Float,
+              speed: Int,
+              healthPoint: Int,
+              damages: Int,
+              nbr : Int) extends Entity (x, y, width, height, speed, healthPoint, damages, nbr){
+
   private val position = new Vector2(x, y)
 
   private var hp = healthPoint
+  private var dmg = damages
+  private var lvl: Int = 1
+  private var currentZoom : Float= 1
 
   private var knockbackDir = new Vector2(0, 0)
   private var knockbackTimer = 0f
@@ -23,13 +35,13 @@ class Player(x: Float, y: Float, width: Float, height: Float, speed: Int, health
   private val knockbackDistance = 600f
 
   private var cooldownTimer = 0f
-  private val cooldownDuration = 0.5f
+  private val cooldownDuration = 0.2f
   var projectiles : ArrayBuffer[Projectile] = ArrayBuffer[Projectile]()
 
   def getClosestEnemy(enemies: ArrayBuffer[Enemy]): Enemy = {
     if (enemies.size == 0){
       println("NO MORE ENEMIES")
-      var fictifEnemy = new Enemy(0, 0, 0, 0, 0, 0, 0)
+      var fictifEnemy = new Enemy("nothing", 0, 0, 0, 0, 0, 0, 0, 0)
       return fictifEnemy
     } else {
       var closestEn: Enemy = enemies(0)
@@ -127,6 +139,10 @@ class Player(x: Float, y: Float, width: Float, height: Float, speed: Int, health
     camera.update()
   }
 
+  def damage(): Int = {
+    return dmg
+  }
+
   def getHit(ennemy: Enemy): Unit = {
     hp -= ennemy.damage()
     println(s"PLAY")
@@ -136,8 +152,11 @@ class Player(x: Float, y: Float, width: Float, height: Float, speed: Int, health
     knockbackDir = new Vector2(position).sub(ennemy.getPosition).nor()
     knockbackTimer = knockbackDuration
   }
-
+  //first weapon
   private var weapon: Weapon = new Bow()
+
+  //other weapons
+  private var spear: Weapon = new Spear()
 
   def setWeapon(w: Weapon): Unit = {
     weapon = w
@@ -152,12 +171,33 @@ class Player(x: Float, y: Float, width: Float, height: Float, speed: Int, health
 
   def getWeapon: Weapon = weapon
 
-  def attack(ennemy: Enemy): Projectile = {
+  var counterDt : Float = 1
+  def attack(ennemy: Enemy, dt: Float): Projectile = {
     println("PLAYER ATTACK")
-    val from : Vector2 = getPosition
-    val to : Vector2 = ennemy.getPosition
-    val direction : Vector2 = new Vector2(to).sub(from).nor()
-    weapon.attack(from, direction)
+    val from = getPosition
+    val to = ennemy.getPosition
+    val direction = new Vector2(to).sub(from).nor()
+    val newProjectile = weapon.attack(from, direction)
+    return newProjectile
+
+  }
+
+
+  def isAlive(): Boolean = {
+    if (hp <= 0){
+      return false
+    } else {
+      return true
+    }
+
+  }
+
+  def getLevel(): Int = {
+    return lvl
+  }
+
+  def getZoom(): Float = {
+    return currentZoom
   }
 
 }
