@@ -17,11 +17,12 @@ abstract class Weapon(val name: String, val damage: Int) {
 class Bow() extends Weapon("Bow", 20){
   override val range : Float = 1000
   override val dmg : Int = 20
-  private val projectilSpeed : Float = 500
+  private val piercing : Int = 1
+  private val projectilSpeed : Float = 2000
 
   override def attack(position: Vector2, direction: Vector2): Projectile = {
     println("BOW ATTACK")
-    new Projectile(position.cpy(), direction.nor(), "arrow", projectilSpeed, dmg, 1)
+    new Projectile(position.cpy(), direction.nor(), "arrow", projectilSpeed, dmg, piercing)
   }
 
   def isEquiped(): Boolean = {
@@ -31,6 +32,18 @@ class Bow() extends Weapon("Bow", 20){
 
 class Spear() extends Weapon("Spear", 30){
   override val range : Float = 1000
+  override val dmg : Int = 30
+  private val piercing : Int = 2
+  private val projectilSpeed : Float = 1000
+
+  override def attack(position: Vector2, direction: Vector2): Projectile = {
+    println("SPEAR ATTACK")
+    new Projectile(position.cpy(), direction.nor(), "spear", projectilSpeed, dmg, piercing)
+  }
+
+  def isEquiped(): Boolean = {
+    return false
+  }
 }
 
 class Projectile(
@@ -58,7 +71,9 @@ class Projectile(
   def draw(g: GdxGraphics): Unit = {
     form match {
       case "arrow" =>
-        g.drawFilledCircle(position.x, position.y, 10f, Color.GREEN)
+        g.drawFilledCircle(position.x, position.y, 1f, Color.GREEN)
+      case "spear" =>
+        g.drawFilledCircle(position.x, position.y, 1f, Color.RED)
       case _ =>
         println("OTHER TYPE OF PROJECTILE")
     }

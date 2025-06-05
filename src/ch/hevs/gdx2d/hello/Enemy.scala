@@ -1,5 +1,6 @@
 package ch.hevs.gdx2d.hello
 
+import ch.hevs.gdx2d.components.bitmaps.BitmapImage
 import ch.hevs.gdx2d.lib.GdxGraphics
 import com.badlogic.gdx.{Gdx, Input}
 import com.badlogic.gdx.graphics.{Color, OrthographicCamera}
@@ -24,8 +25,10 @@ class Enemy(var name: String,
   private val position = new Vector2(x, y)
 
   private var hp = healthPoint
-
+  private var xp = hp
   private var dmg : Int = damages
+  private var lastPressed = "down"
+  private var animationLockTimer = 0f
 
   private var knockbackDir = new Vector2(0, 0)
   private var knockbackTimer = 0f
@@ -36,6 +39,9 @@ class Enemy(var name: String,
     return dmg
   }
 
+  def getXp(): Int = {
+    return xp
+  }
   def getHp(): Int = {
     return hp
   }
@@ -61,59 +67,46 @@ class Enemy(var name: String,
         knockbackTimer -= dt
         val t = 1f - (knockbackTimer / knockbackDuration)
         val strength = Interpolation.swingOut.apply(1f - t) * knockbackDistance
-
         position.add(knockbackDir.cpy().scl(strength * dt))
       } else {
-        val diagonalFactor = 0.8f // Useful to avoid faster movement on diagonal
-        val direction = new Vector2(playerPos).sub(position).nor()
-        position.mulAdd(direction, speed * dt)
+        if (animationLockTimer <= 0) {
+          val direction = new Vector2(playerPos).sub(position).nor()
+
+          if (Math.abs(direction.x) > Math.abs(direction.y)) {
+            lastPressed = if (direction.x > 0) "right" else "left"
+          } else {
+            lastPressed = if (direction.y > 0) "up" else "down"
+          }
+        }
+
+        position.mulAdd(new Vector2(playerPos).sub(position).nor(), speed * dt)
       }
+
     }
 
   }
 
   // TODO : Placeholder to check drawing and movement logic, need to be change
   override def draw(g: GdxGraphics): Unit = {
-    g.setColor(Color.GRAY)
-    g.drawFilledRectangle(position.x, position.y + 100, 120, 15, 0)
-    g.setColor(Color.RED)
-    g.drawFilledRectangle(position.x, position.y + 100, hp, 8, 0)
-    //draw hitbox corresponding to type
-    name match {
-      case "goblin" =>
-        g.setColor(Color.GREEN) // HitBox
-        g.drawFilledRectangle(position.x, position.y, width, height, 0)
-      case "skeleton distance" =>
-        g.setColor(new Color(200, 200, 200, 0)) // HitBox
-        g.drawFilledRectangle(position.x, position.y, width, height, 0)
-      case "skeleton" =>
-        g.setColor(new Color(150, 150, 150, 0)) // HitBox
-        g.drawFilledRectangle(position.x, position.y, width, height, 0)
-      case "orc" =>
-        g.setColor(Color.FOREST) // HitBox
-        g.drawFilledRectangle(position.x, position.y, width, height, 0)
-      case "mage" =>
-        g.setColor(Color.BLUE) // HitBox
-        g.drawFilledRectangle(position.x, position.y, width, height, 0)
-      case "boss" =>
-        g.setColor(Color.GOLDENROD) // HitBox
-        g.drawFilledRectangle(position.x, position.y, width, height, 0)
-      case _ =>
-    }
-
-    g.setColor(Color.WHITE)
-    g.drawString(position.x, position.y, s"$nbr")
+    generateFrame(g, Gdx.graphics.getDeltaTime)
   }
+
 
   override def getPosition: Vector2 = position.cpy()
 
+
+
   def getHit(player: Player): Unit = {
+    lastPressed = "hit"
+    animationLockTimer = 0.3f // 300ms d'animation hit
     hp -= player.damage()
     knockbackDir = new Vector2(position).sub(player.getPosition).nor()
     knockbackTimer = knockbackDuration
   }
 
   def getHit(projectile: Projectile): Unit = {
+    lastPressed = "hit"
+    animationLockTimer = 0.3f // 300ms d'animation hit
     hp -= projectile.damage
     projectile.onHit()
   }
@@ -125,5 +118,74 @@ class Enemy(var name: String,
   def pushAway(pushVec: Vector2): Unit = { // Avoid collision between ennemies
     position.add(pushVec)
   }
+
+  private var currentFrame = 0
+  private var animationTimer = 0f
+  private val frameDuration = 0.1f // Durée d'affichage de chaque frame (en secondes)
+
+  private var lastAnimation: String = "down"
+
+  def generateFrame(g: GdxGraphics, dt: Float): Unit = {
+    if (animationLockTimer > 0) {
+      animationLockTimer -= dt
+    }
+    val (walkDownFrames, walkUpFrames, walkLeftFrames, walkRightFrames, hitFrames) = name match {
+      case "goblin" => (
+        if (isAlive() == true){
+          (
+            EnemyAnimations.goblinWalkDown,
+            EnemyAnimations.goblinWalkUp,
+            EnemyAnimations.goblinWalkLeft,
+            EnemyAnimations.goblinWalkRight,
+            EnemyAnimations.goblinHit
+          )
+        } else {
+          (
+          EnemyAnimations.goblinDeathDown,
+          EnemyAnimations.goblinDeathUp,
+          EnemyAnimations.goblinDeathLeft,
+          EnemyAnimations.goblinDeathRight,
+          Array[BitmapImage]()
+          )
+        }
+      )
+      case _ => (
+        EnemyAnimations.goblinWalkDown,
+        EnemyAnimations.goblinWalkUp,
+        EnemyAnimations.goblinWalkLeft,
+        EnemyAnimations.goblinWalkRight,
+        EnemyAnimations.goblinHit
+      )
+    }
+
+    val activeFrames = lastPressed match {
+      case "down"  => walkDownFrames
+      case "up"    => walkUpFrames
+      case "left"  => walkLeftFrames
+      case "right" => walkRightFrames
+      case "hit"   => hitFrames
+      case _       => walkDownFrames
+    }
+
+    // Si on change d'animation, reset currentFrame à 0
+    if (lastAnimation != lastPressed) {
+      currentFrame = 0
+      animationTimer = 0
+      lastAnimation = lastPressed
+    }
+
+    if (activeFrames.nonEmpty) {
+      animationTimer += dt
+      if (animationTimer >= frameDuration) {
+        animationTimer = 0
+        currentFrame = (currentFrame + 1) % activeFrames.length
+      }
+
+      g.drawTransformedPicture(position.x, position.y, 0, 0.5f, 0, 1, activeFrames(currentFrame))
+    }
+
+
+  }
+
 
 }
