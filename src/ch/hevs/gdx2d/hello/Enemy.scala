@@ -12,12 +12,20 @@ import scala.collection.mutable.ArrayBuffer
  *
  */
 // TODO Nbr is temporary, need to be change when real enemies are set
-class Enemy(x: Float, y: Float, width: Float, height: Float, nbr: Int) extends Entity (x, y, width, height, nbr){
+class Enemy(var name: String,
+            x: Float,
+            y: Float,
+            width: Float,
+            height: Float,
+            speed: Int,
+            healthPoint: Int,
+            damages: Int,
+            nbr: Int) extends Entity (x, y, width, height, speed, healthPoint, damages, nbr){
   private val position = new Vector2(x, y)
-  private val speed = 200 // pixels/second
 
-  private var hp : Int = 100
-  private val dmg : Int = 10
+  private var hp = healthPoint
+
+  private var dmg : Int = damages
 
   private var knockbackDir = new Vector2(0, 0)
   private var knockbackTimer = 0f
@@ -70,8 +78,29 @@ class Enemy(x: Float, y: Float, width: Float, height: Float, nbr: Int) extends E
     g.drawFilledRectangle(position.x, position.y + 100, 120, 15, 0)
     g.setColor(Color.RED)
     g.drawFilledRectangle(position.x, position.y + 100, hp, 8, 0)
-    g.setColor(Color.RED) // HitBox
-    g.drawFilledRectangle(position.x, position.y, width, height, 0)
+    //draw hitbox corresponding to type
+    name match {
+      case "goblin" =>
+        g.setColor(Color.GREEN) // HitBox
+        g.drawFilledRectangle(position.x, position.y, width, height, 0)
+      case "skeleton distance" =>
+        g.setColor(new Color(200, 200, 200, 0)) // HitBox
+        g.drawFilledRectangle(position.x, position.y, width, height, 0)
+      case "skeleton" =>
+        g.setColor(new Color(150, 150, 150, 0)) // HitBox
+        g.drawFilledRectangle(position.x, position.y, width, height, 0)
+      case "orc" =>
+        g.setColor(Color.FOREST) // HitBox
+        g.drawFilledRectangle(position.x, position.y, width, height, 0)
+      case "mage" =>
+        g.setColor(Color.BLUE) // HitBox
+        g.drawFilledRectangle(position.x, position.y, width, height, 0)
+      case "boss" =>
+        g.setColor(Color.GOLDENROD) // HitBox
+        g.drawFilledRectangle(position.x, position.y, width, height, 0)
+      case _ =>
+    }
+
     g.setColor(Color.WHITE)
     g.drawString(position.x, position.y, s"$nbr")
   }
@@ -79,7 +108,7 @@ class Enemy(x: Float, y: Float, width: Float, height: Float, nbr: Int) extends E
   override def getPosition: Vector2 = position.cpy()
 
   def getHit(player: Player): Unit = {
-    hp -= 10
+    hp -= player.damage()
     knockbackDir = new Vector2(position).sub(player.getPosition).nor()
     knockbackTimer = knockbackDuration
   }
@@ -87,6 +116,10 @@ class Enemy(x: Float, y: Float, width: Float, height: Float, nbr: Int) extends E
   def getHit(projectile: Projectile): Unit = {
     hp -= projectile.damage
     projectile.onHit()
+  }
+
+  def getHit(Stinky : stinky) : Unit = {
+    hp -= Stinky.damage
   }
 
   def takeDamage(dmg : Int): Unit = {

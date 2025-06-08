@@ -6,22 +6,22 @@ import com.badlogic.gdx.math.Vector2
 
 import scala.collection.mutable.ArrayBuffer
 
-abstract class Weapon(val name: String, val damage: Int) {
+abstract class Weapon(val name: String, var damage: Int) {
   val range : Float
-  val dmg : Int = damage
+  var dmg : Int = damage
+  var piercePower : Int = 1
 
 
-  def attack(position : Vector2 = null, direction: Vector2 = null): Projectile = null
+  def attack(position: Vector2, direction: Vector2): Projectile
 }
 
 class Bow() extends Weapon("Bow", 20){
   override val range : Float = 1000
-  override val dmg : Int = 20
-  private val attackSpeed : Float = 500
-
+  dmg = 20
+  private val projectilSpeed : Float = 500
   override def attack(position: Vector2, direction: Vector2): Projectile = {
     println("BOW ATTACK")
-    new Projectile(position.cpy(), direction.nor(), "arrow", attackSpeed, dmg, 1)
+    new Projectile(position.cpy(), direction.nor(), "arrow", projectilSpeed, dmg, piercePower)
   }
 
   def isEquiped(): Boolean = {
@@ -29,13 +29,23 @@ class Bow() extends Weapon("Bow", 20){
   }
 }
 
+class Spear() extends Weapon("Spear", 30){
+  override val range: Float = 1000
+  private val projectileSpeed: Float = 400
+
+  override def attack(position: Vector2, direction: Vector2): Projectile = {
+    println("SPEAR ATTACK")
+    new Projectile(position.cpy(), direction.nor(), "spear", projectileSpeed, dmg, piercePower)
+  }
+}
+
 class Projectile(
-                var position: Vector2,
-                val direction: Vector2,
-                val form: String, // @TODO FORMS TO DEFINE, AND REPLACE THEM WITH IMAGES
-                val speed: Float,
-                val damage: Int,
-                val pierce: Int)
+                  var position: Vector2,
+                  val direction: Vector2,
+                  val form: String, // @TODO FORMS TO DEFINE, AND REPLACE THEM WITH IMAGES
+                  val speed: Float,
+                  val damage: Int,
+                  var pierce: Int)
 {
   private var pierced : Int = pierce
   var active : Boolean = true
@@ -54,8 +64,10 @@ class Projectile(
     form match {
       case "arrow" =>
         g.drawFilledCircle(position.x, position.y, 10f, Color.GREEN)
+      case "spear" =>
+        g.drawFilledRectangle(position.x, position.y, 20f, 5f,0,Color.BLUE)
       case _ =>
-        println("OTHER TYPE OF PROJECTILE")
+        g.drawFilledCircle(position.x, position.y, 10f, Color.WHITE)
     }
 
   }
