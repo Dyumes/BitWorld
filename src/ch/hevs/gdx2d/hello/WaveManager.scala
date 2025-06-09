@@ -157,8 +157,8 @@ class WaveManager{
             val range : Float = Random.nextFloat() * 500 + radius
             val x = position.x + range * Math.cos(angle).toFloat
             val y = position.y + range * Math.sin(angle).toFloat
-            var mage: Enemy = new Enemy("mage", x, y, 60, 60, 180, 50, 30, 0)
-            enemies += mage
+            var wizard: Enemy = new Enemy("wizard", x, y, 60, 60, 180, 50, 30, 0)
+            enemies += wizard
           }
           counterDt = 2 * Random.nextFloat()
         case 6 =>
@@ -169,7 +169,7 @@ class WaveManager{
             val range : Float = Random.nextFloat() * 500 + radius
             val x = position.x + range * Math.cos(angle).toFloat
             val y = position.y + range * Math.sin(angle).toFloat
-            var boss_Mudry: Enemy = new Enemy("boss", x, y, 300, 300, 150, 5000, 80, 0)
+            var boss_Mudry: Enemy = new Enemy("boss", x, y, 256, 256, 150, 5000, 80, 0)
             enemies += boss_Mudry
           }
           waveBoss = true

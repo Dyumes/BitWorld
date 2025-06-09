@@ -1,14 +1,16 @@
 package ch.hevs.gdx2d.hello
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.math.{Interpolation, Vector2}
+import com.badlogic.gdx.math.{Interpolation, Matrix4, Vector2}
 import ch.hevs.gdx2d.components.bitmaps.BitmapImage
 import ch.hevs.gdx2d.lib.GdxGraphics
 import ch.hevs.gdx2d.desktop.PortableApplication
 import com.badlogic.gdx.Input.Keys
 import ch.hevs.gdx2d.hello.Player
 import ch.hevs.gdx2d.hello.WaveManager
-import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.{Color, OrthographicCamera}
+import com.badlogic.gdx.graphics.g2d.{BitmapFont, SpriteBatch}
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 
 import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
@@ -25,15 +27,29 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
   private var background : BitmapImage = null
   private var backgroundDrew : Boolean = false
 
+
+
   private val player : Player = new Player(100, 100, 60, 60, 200, 200000, 20, 0)
+  private var firstLaunch : Boolean = true
   private val enemies : ArrayBuffer[Enemy] = ArrayBuffer[Enemy]()
   private val Wave = new WaveManager
+
+  //For UI
+  private var uiBatch: SpriteBatch = _
+  private var uiCamera: OrthographicCamera = _
+  private var uiFont: BitmapFont = _
+  private var uiShapes: ShapeRenderer = _
 
   override def onInit(): Unit = {
     setTitle("BitWorld")
     // Load a custom image (or from the lib "res/lib/icon64.png")
     imgBitmap = new BitmapImage("data/images/ISC_logo.png")
     background = new BitmapImage("data/images/map.png")
+    uiBatch = new SpriteBatch()
+    uiCamera = new OrthographicCamera()
+    uiCamera.setToOrtho(false, getWindowWidth, getWindowHeight)
+    uiFont = new BitmapFont()
+    uiShapes = new ShapeRenderer()
 
 
   }
@@ -74,13 +90,15 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
 
 
     enemies.filterInPlace { enemy =>
-      val alive = enemy.isAlive()
-      if (!alive) {
+      val keep = !enemy.isReadyToBeRemoved()
+      if (!keep) {
+        player.addKill()
         player.addXp(enemy.getXp())
         println("ENEMY REMOVED")
       }
-      alive
+      keep
     }
+
     for (en <- enemies.indices){
       enemies(en).update(dt, player.getPosition)
       val distanceToPlayer = enemies(en).getPosition.dst(player.getPosition)
@@ -88,11 +106,11 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
       for (projectil <- player.projectiles){
         val distanceToProjectile = enemies(en).getPosition.dst(projectil.position)
         if (distanceToProjectile < enemies(en).width){
-          enemies(en).getHit(projectil)
+          enemies(en).getHit(g, enemies, projectil)
         }
       }
 
-      if (distanceToPlayer < player.width){
+      if (distanceToPlayer < enemies(en).width / 2){
         player.getHit(enemies(en))
         enemies(en).getHit(player)
       }
@@ -105,7 +123,7 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
         val distance = direction.len()
         val minDistance = enemies(i).width
 
-        if (distance < minDistance && distance > 0){
+        if (distance < minDistance && distance > 0 && en1.isAlive() && en2.isAlive()){
           val push = direction.nor().scl((minDistance-distance) * 0.5f)
           en1.pushAway(push)
           en2.pushAway(push.scl(-1))
@@ -132,11 +150,87 @@ class HelloWorldScala extends PortableApplication(1920, 1080) {
       en.draw(g)
     }
 
+    val targets = player.getClosestEnemiesForWeapons(enemies)
+
+    for ((weapon, target) <- targets) {
+      val direction = target.getPosition.cpy().sub(player.getPosition)
+      weapon.draw(g, dt, player.getPosition, direction)
+    }
+
+
     player.attack(player.getClosestEnemy(enemies), dt).draw(g)
+    player.updateOrbs(dt, enemies)
+    player.drawOrbs(g, dt)
 
     g.setColor(Color.BLACK)
-    g.drawString(player.getPosition.x, player.getPosition.y, s"${player.getLevel()}")
-    g.drawString(player.getPosition.x, player.getPosition.y + 10, s"${player.getXp()}")
+
+    uiCamera.update()
+    uiBatch.setProjectionMatrix(uiCamera.combined)
+
+    uiBatch.begin()
+    val barWidth = 200
+    val barHeight = 25
+    val margin = 20
+    val yPos = getWindowHeight - margin - barHeight
+
+
+
+    // Fond de la barre
+    uiShapes.begin(ShapeRenderer.ShapeType.Filled)
+    uiShapes.setColor(0.2f, 0.2f, 0.2f, 1) // Gris foncé
+    uiShapes.rect(margin, yPos, barWidth, barHeight)
+
+    val hpPercent = player.getHp().toFloat / player.getHpMax()
+    //change color to hp (red to green)
+    uiShapes.setColor(
+      1 - hpPercent,
+      hpPercent,
+      0.2f,
+      1
+    )
+    uiShapes.rect(margin, yPos, barWidth * hpPercent, barHeight)
+    uiShapes.end()
+    uiBatch.end()
+
+    uiBatch.begin()
+    uiFont.draw(uiBatch, f"${player.getHp()}%d", margin + 10, yPos + barHeight - 5)
+    uiBatch.end()
+
+    val xpBarY = yPos - 30
+
+    // Fond barre XP
+    uiShapes.begin(ShapeRenderer.ShapeType.Filled)
+    uiShapes.setColor(0.1f, 0.1f, 0.3f, 1) // Bleu fonéjoiuth9p8 tppui hpi jnkél hé op hup uhuhi phuo ohup  éo hoiu houi gzoz gzozo zo guhip  hiou ooui oo ho iu g o uihuio  ué jk é
+    uiShapes.rect(margin, xpBarY, barWidth, barHeight - 5)
+
+    // XP actuelle
+    val xpToNextLevel = player.getXpForNextLevel() // À implémenter
+    val xpPercent = player.getXp().toFloat / xpToNextLevel
+    uiShapes.setColor(0.3f, 0.4f, 1f, 1) // Bleu clair
+    uiShapes.rect(margin, xpBarY, barWidth * xpPercent, barHeight - 5)
+
+    uiShapes.setColor(1, 1, 0, 1)
+    uiShapes.rect(margin + barWidth * xpPercent - 2, xpBarY - 5, 4, barHeight + 5)
+    uiShapes.end()
+
+
+
+    uiBatch.begin()
+    uiFont.draw(uiBatch, s"Lvl ${player.getLevel()} (${(xpPercent * 100).toInt}%)", margin + 10, xpBarY + barHeight - 10)
+    uiFont.draw(uiBatch, s"Kills ${player.getKillCount}", margin + 10, xpBarY + barHeight - 40)
+    uiFont.draw(uiBatch, s"${player.weapons.map(_.name).mkString(", ")}\n Orbs : ${player.orbs.length}", margin + 10, xpBarY + barHeight - 70)
+    uiFont.draw(uiBatch, s"Nbr enemies : ${enemies.length}", margin + 10, xpBarY + barHeight - 100)
+    //uiFont.draw(uiBatch, s"${player.getXp()}", margin + 10, xpBarY + barHeight - 100) #For debug
+    uiBatch.end()
+
+    // Après avoir dessiné les barres principales
+    uiShapes.begin(ShapeRenderer.ShapeType.Line)
+    uiShapes.setColor(0.5f, 0.5f, 0.5f, 1) // Gris métallique
+    uiShapes.rect(margin - 1, yPos - 1, barWidth + 2, barHeight + 2) // Contour HP
+    uiShapes.rect(margin - 1, xpBarY - 1, barWidth + 2, barHeight - 5 + 2) // Contour XP
+    uiShapes.end()
+
+
   }
 
   /**

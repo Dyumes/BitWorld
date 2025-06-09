@@ -1,6 +1,6 @@
 package ch.hevs.gdx2d.hello
 
-import ch.hevs.gdx2d.components.bitmaps.BitmapImage
+import ch.hevs.gdx2d.components.bitmaps.{BitmapImage, Spritesheet}
 import ch.hevs.gdx2d.desktop.PortableApplication
 import ch.hevs.gdx2d.lib.GdxGraphics
 import com.badlogic.gdx.{Gdx, Input}
@@ -34,16 +34,35 @@ class Player(
   private var lvl: Int = 1
   private var currentZoom : Float= 0.6f
   private var lastPressed = "down"
+  private var animationLockTimer = 0f
 
   private var knockbackDir = new Vector2(0, 0)
   private var knockbackTimer = 0f
   private val knockbackDuration = 0.2f // 200 ms
   private val knockbackDistance = 600f
 
-  private var cooldownTimer = 0f
-  private val cooldownDuration = 0.2f
+  private var weapon1WasPressed = false
+  private var weapon2WasPressed = false
+  private var weapon3WasPressed = false
+  private var weapon4WasPressed = false
+
+
   var projectiles : ArrayBuffer[Projectile] = ArrayBuffer[Projectile]()
   var weapons : ArrayBuffer[Weapon] = ArrayBuffer[Weapon]()
+
+  val orbs = ArrayBuffer[Orb]()
+
+  def addOrb(): Unit = {
+    orbs += new Orb()
+  }
+
+  def updateOrbs(dt: Float, enemies: ArrayBuffer[Enemy]): Unit = {
+    orbs.foreach(_.update(dt, getPosition, enemies))
+  }
+
+  def drawOrbs(g: GdxGraphics, dt: Float): Unit = {
+    orbs.foreach(_.draw(g, dt, getPosition, Vector2.Zero))
+  }
 
   def getClosestEnemy(enemies: ArrayBuffer[Enemy]): Enemy = {
     if (enemies.size == 0){
@@ -54,13 +73,30 @@ class Player(
       var closestEn: Enemy = enemies(0)
       for (en <- enemies.indices){
         val distance = enemies(en).getPosition.dst(getPosition)
-        if (distance < closestEn.getPosition.dst(getPosition)){
+        if (distance < closestEn.getPosition.dst(getPosition) && closestEn.isAlive() == true){
           closestEn = enemies(en)
           println(s"CLOSEST ENEMY : ${enemies(en).nbr}")
         }
       }
       return closestEn
     }
+  }
+
+  def getClosestEnemiesForWeapons(enemies: ArrayBuffer[Enemy]): Map[Weapon, Enemy] = {
+    val livingEnemies = enemies.filter(_.isAlive()).sortBy(_.getPosition.dst(this.getPosition))
+    val weaponTargets = scala.collection.mutable.Map[Weapon, Enemy]()
+
+    val usedEnemies = scala.collection.mutable.Set[Enemy]()
+
+    for (weapon <- weapons) {
+      val targetOpt = livingEnemies.find(e => !usedEnemies.contains(e))
+      targetOpt.foreach { target =>
+        weaponTargets(weapon) = target
+        usedEnemies += target
+      }
+    }
+
+    weaponTargets.toMap
   }
 
 
@@ -91,28 +127,44 @@ class Player(
       } else {
         val diagonalFactor = 0.8f // Useful to avoid faster movement on diagonal
 
-        val left  = Gdx.input.isKeyPressed(Input.Keys.LEFT)
-        val right = Gdx.input.isKeyPressed(Input.Keys.RIGHT)
-        val up    = Gdx.input.isKeyPressed(Input.Keys.UP)
-        val down  = Gdx.input.isKeyPressed(Input.Keys.DOWN)
+        val left  = Gdx.input.isKeyPressed(Input.Keys.A)
+        val right = Gdx.input.isKeyPressed(Input.Keys.D)
+        val up    = Gdx.input.isKeyPressed(Input.Keys.W)
+        val down  = Gdx.input.isKeyPressed(Input.Keys.S)
 
         val weapon1 = Gdx.input.isKeyPressed(Input.Keys.NUM_1)
         val weapon2 = Gdx.input.isKeyPressed(Input.Keys.NUM_2)
+        val weapon3 = Gdx.input.isKeyPressed(Input.Keys.NUM_3)
+        val weapon4 = Gdx.input.isKeyPressed(Input.Keys.NUM_4)
+        val xp3 = Gdx.input.isKeyPressed(Input.Keys.NUM_8)
         val xp4 = Gdx.input.isKeyPressed(Input.Keys.NUM_9)
 
-
-
-        //TODO : ONLY FOR DEBUGS
-        if(weapon1 == true){
-          weapons += bow
-          setWeapon(bow)
-        } else if(weapon2 == true){
-          weapons += spear
-          setWeapon(spear)
+        // TODO: Only for debugs
+        if (xp3 == true){
+          xp = 40000
         } else if (xp4 == true){
           xp = 140000
         }
 
+        if (weapon1 && !weapon1WasPressed) {
+          weapons += new Bow
+        }
+        weapon1WasPressed = weapon1
+
+        if (weapon2 && !weapon2WasPressed) {
+          weapons += new Spear
+        }
+        weapon2WasPressed = weapon2
+
+        if (weapon3 && !weapon3WasPressed) {
+          addOrb()
+        }
+        weapon3WasPressed = weapon3
+
+        if (weapon4 && !weapon4WasPressed) {
+          weapons += new Wand()
+        }
+        weapon4WasPressed = weapon4
 
 
         val horizontal = (if (left)
@@ -140,23 +192,20 @@ class Player(
         position.x += horizontal * speed * dt * moveFactor
         position.y += vertical   * speed * dt * moveFactor
 
-        cooldownTimer -= dt
-        if (cooldownTimer <= 0) {
-          val closest = getClosestEnemy(enemies)
-          if (closest != null) {
-            val distance = closest.getPosition.dst(getPosition)
-            if (distance < weapon.range){
-              val from = getPosition
-              val to = closest.getPosition
-              val direction = new Vector2(to).sub(from).nor()
+        val targets = getClosestEnemiesForWeapons(enemies)
 
-              val proj = weapon.attack(from, direction)
-              projectiles += proj
-              cooldownTimer = cooldownDuration
-            }
+        for ((weapon, enemy) <- targets) {
+          val distance = enemy.getPosition.dst(getPosition)
+          if (distance < weapon.range && enemy.isAlive() && weapon.canAttack(dt)) {
+            val from = getPosition
+            val to = enemy.getPosition
+            val direction = new Vector2(to).sub(from).nor()
 
+            val proj = weapon.attack(from, direction)
+            projectiles += proj
           }
         }
+
       }
 
     }
@@ -164,15 +213,34 @@ class Player(
 
   }
 
+  private var killCount: Int = 0
+
+  def addKill(): Unit = {
+    killCount += 1
+  }
+
+  def getKillCount: Int = killCount
+
+
+  def displayUi(g: GdxGraphics): Unit = {
+
+  }
+
+  def getHp(): Int = hp
+  def getHpMax(): Int = hpMax
+
+
   // TODO : Placeholder to check drawing and movement logic, need to be change
   def draw(g: GdxGraphics, dt: Float): Unit = {
     generateFrame(g, dt)
+
 
     // Dessin de la barre de vie
     g.setColor(Color.GRAY)
     g.drawFilledRectangle(position.x, position.y + 100, 120, 15, 0)
     g.setColor(Color.GREEN)
     g.drawFilledRectangle(position.x, position.y + 100, hpToDraw, 8, 0)
+
   }
 
 
@@ -201,6 +269,7 @@ class Player(
 
   def getHit(ennemy: Enemy): Unit = {
     lastPressed = "hit"
+    //ss = new Spritesheet("data/images/goblin/orc1_hurt_full.png", SPRITE_WIDTH, SPRITE_HEIGHT)
     hp -= ennemy.damage()
     hpToDraw += (hp * 100 / hpMax) - hpToDraw
     println(s"PLAY")
@@ -211,11 +280,13 @@ class Player(
     knockbackTimer = knockbackDuration
   }
   //first weapon
-  private var weapon: Weapon = new Bow()
+  private var weapon: Weapon = new Spear()
+  weapons += weapon
 
   //other weapons
   private var bow: Weapon = new Bow()
-  private var spear: Weapon = new Spear()
+  private var spear: Weapon = new Bow()
+  private var wand: Weapon = new Wand()
 
   def setWeapon(w: Weapon): Unit = {
     weapon = w
@@ -258,6 +329,25 @@ class Player(
   def getXp(): Int = {
     return xp
   }
+  def getXpForNextLevel(): Int = {
+    lvl match {
+      case 1 =>
+        return 5000
+      case 2 =>
+        return 15000
+      case 3 =>
+        return 40000
+      case 4 =>
+        return 75000
+      case 5 =>
+        return 150000
+      case _ =>
+        return 0
+    }
+  }
+
+  def getHpPercent(): Float = getHp().toFloat / getHpMax()
+
   def getLevel(): Int = {
     return lvl
   }
@@ -266,81 +356,51 @@ class Player(
     return currentZoom
   }
 
-  private var currentFrame = 0
   private var animationTimer = 0f
   private val frameDuration = 0.1f // Durée d'affichage de chaque frame (en secondes)
 
   private var lastAnimation: String = "down"
 
-  // Modifiez la méthode generateFrame
+  private val SPRITE_WIDTH = 128
+  private val SPRITE_HEIGHT = 128
+  private val FRAME_TIME = 0.15 // Duration of each frame
+
+  private var ss: Spritesheet = null
+
+  private val textureX = 0
+  private var textureY = 1
+
+  /**
+   * Animation related parameters
+   */
+  private var dt = 0
+  private var currentFrame = 0
+
+
+  private var newLaunch : Boolean = true
+
   def generateFrame(g: GdxGraphics, dt: Float): Unit = {
-    val walkDownFrames = Array(
-      new BitmapImage("data/images/goblin/walk_down/tile000.png"),
-      new BitmapImage("data/images/goblin/walk_down/tile001.png"),
-      new BitmapImage("data/images/goblin/walk_down/tile002.png"),
-      new BitmapImage("data/images/goblin/walk_down/tile003.png"),
-      new BitmapImage("data/images/goblin/walk_down/tile004.png"),
-      new BitmapImage("data/images/goblin/walk_down/tile005.png")
-    )
-
-    val walkUpFrames = Array(
-      new BitmapImage("data/images/goblin/walk_up/tile006.png"),
-      new BitmapImage("data/images/goblin/walk_up/tile007.png"),
-      new BitmapImage("data/images/goblin/walk_up/tile008.png"),
-      new BitmapImage("data/images/goblin/walk_up/tile009.png"),
-      new BitmapImage("data/images/goblin/walk_up/tile010.png"),
-      new BitmapImage("data/images/goblin/walk_up/tile011.png")
-    )
-
-    val walkLeftFrames = Array(
-      new BitmapImage("data/images/goblin/walk_left/tile012.png"),
-      new BitmapImage("data/images/goblin/walk_left/tile013.png"),
-      new BitmapImage("data/images/goblin/walk_left/tile014.png"),
-      new BitmapImage("data/images/goblin/walk_left/tile015.png"),
-      new BitmapImage("data/images/goblin/walk_left/tile016.png"),
-      new BitmapImage("data/images/goblin/walk_left/tile017.png")
-    )
-
-    val walkRightFrames = Array(
-      new BitmapImage("data/images/goblin/walk_right/tile018.png"),
-      new BitmapImage("data/images/goblin/walk_right/tile019.png"),
-      new BitmapImage("data/images/goblin/walk_right/tile020.png"),
-      new BitmapImage("data/images/goblin/walk_right/tile021.png"),
-      new BitmapImage("data/images/goblin/walk_right/tile022.png"),
-      new BitmapImage("data/images/goblin/walk_right/tile023.png")
-    )
-
-    val hitFrames = Array(
-      new BitmapImage("data/images/goblin/hit/tile003.png"),
-      new BitmapImage("data/images/goblin/hit/tile009.png"),
-      new BitmapImage("data/images/goblin/hit/tile015.png"),
-      new BitmapImage("data/images/goblin/hit/tile021.png"),
-    )
-
-    val activeFrames = lastPressed match {
-      case "down"  => walkDownFrames
-      case "up"    => walkUpFrames
-      case "left"  => walkLeftFrames
-      case "right" => walkRightFrames
-      case "hit"   => hitFrames
-      case _       => walkDownFrames // fallback
+    if (newLaunch == true){
+      ss = new Spritesheet("data/images/player/player_walk.png", SPRITE_WIDTH, SPRITE_HEIGHT)
+      newLaunch = false
     }
+    if (animationLockTimer > 0) animationLockTimer -= dt
 
-    // Animation frame update
-    if (lastAnimation != lastPressed) {
-      currentFrame = 0
-      animationTimer = 0
-      lastAnimation = lastPressed
+    val dirIndex = lastPressed match {
+      case "down"  => 0
+      case "up"  => 3
+      case "left" => 1
+      case "right"    => 2
+      case _       => 0
     }
 
     animationTimer += dt
     if (animationTimer >= frameDuration) {
       animationTimer = 0
-      currentFrame = (currentFrame + 1) % activeFrames.length
+      currentFrame = (currentFrame + 1) % ss.sprites(dirIndex).length
     }
 
-    g.drawTransformedPicture(position.x, position.y, 0, 0.5f, 0, 1, activeFrames(currentFrame))
+    val img = ss.sprites(dirIndex)(currentFrame)
+    g.draw(img, position.x - SPRITE_WIDTH/2, position.y - SPRITE_HEIGHT/2)
   }
-
-
 }
