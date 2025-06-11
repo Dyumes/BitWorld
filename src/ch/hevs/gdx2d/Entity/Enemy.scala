@@ -1,9 +1,10 @@
-package ch.hevs.gdx2d.hello
+package ch.hevs.gdx2d.Entity
 
-import ch.hevs.gdx2d.components.bitmaps.{BitmapImage, Spritesheet}
+import ch.hevs.gdx2d.components.bitmaps.Spritesheet
+import ch.hevs.gdx2d.weapons_abilities._
 import ch.hevs.gdx2d.lib.GdxGraphics
-import com.badlogic.gdx.{Gdx, Input}
-import com.badlogic.gdx.graphics.{Color, OrthographicCamera}
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.{Interpolation, Vector2}
 
 import scala.collection.mutable.ArrayBuffer
@@ -25,6 +26,7 @@ class Enemy(var name: String,
   private val position = new Vector2(x, y)
 
   private var hp = healthPoint
+  private var maxHp = healthPoint
   private var xp = hp
   private var dmg: Int = damages
   private var lastPressed = "down"
@@ -40,6 +42,10 @@ class Enemy(var name: String,
   private val knockbackDuration = 0.2f // 200 ms
   private val knockbackDistance = 600f
 
+  private var knockbackTargetPos: Vector2 = position.cpy()
+  private var isKnockbackActive = false
+  private val knockbackInterpolationSpeed = 5f // Ajuste cette valeur pour changer la vitesse du glissement
+
   def damage(): Int = {
     return dmg
   }
@@ -50,6 +56,10 @@ class Enemy(var name: String,
 
   def getHp(): Int = {
     return hp
+  }
+
+  def getHpMax(): Int = {
+    return maxHp
   }
 
   def isAlive(): Boolean = {
@@ -163,7 +173,6 @@ class Enemy(var name: String,
     if (animationLockTimer > 0f) {
       animationLockTimer -= dt
       if (animationLockTimer <= 0f && !isDead) {
-        // Restaurer la bonne spritesheet selon le type d'ennemi
         returnSprite("alive")
         currentFrame = 0
         animationTimer = 0f
@@ -173,11 +182,23 @@ class Enemy(var name: String,
     if (isAlive() == false) {
       println("ENEMY DEAD")
     } else {
-      if (knockbackTimer > 0) {
+      if (isKnockbackActive) {
+        val progress = 1f - (knockbackTimer / knockbackDuration)
+        val alpha = Interpolation.smooth.apply(progress)
+        position.set(
+          knockbackTargetPos.x * alpha + position.x * (1 - alpha),
+          knockbackTargetPos.y * alpha + position.y * (1 - alpha)
+        )
+
+        // Vérifie si on est proche de la position cible
+        if (position.dst2(knockbackTargetPos) < 5f) {
+          isKnockbackActive = false
+        }
+
         knockbackTimer -= dt
-        val t = 1f - (knockbackTimer / knockbackDuration)
-        val strength = Interpolation.swingOut.apply(1f - t) * knockbackDistance
-        position.add(knockbackDir.cpy().scl(strength * dt))
+        if (knockbackTimer <= 0f) {
+          isKnockbackActive = false
+        }
       } else {
         if (animationLockTimer <= 0) {
           val direction = new Vector2(playerPos).sub(position).nor()
@@ -191,19 +212,19 @@ class Enemy(var name: String,
 
         position.mulAdd(new Vector2(playerPos).sub(position).nor(), speed * dt)
       }
-
     }
-
   }
 
   override def draw(g: GdxGraphics): Unit = {
     generateFrame(g, Gdx.graphics.getDeltaTime)
-    //Hitbox
+
+    /*Hitbox
     g.setColor(Color.RED)
     g.drawString(position.x, position.y, s"$nbr")
     g.drawRectangle(position.x, position.y, width, height, 0)
-  }
+    */
 
+  }
 
   override def getPosition: Vector2 = position.cpy()
 
@@ -221,8 +242,14 @@ class Enemy(var name: String,
         returnSprite("dead")
         currentFrame = 0
         animationTimer = 0f
+        knockbackDir = new Vector2(position).sub(player.getPosition).nor()
+        knockbackTimer = knockbackDuration
       }
     }
+  }
+
+  def getHit(Stinky : stinky) : Unit = {
+    hp -= Stinky.damage
   }
 
   def getHit(orb: Orb, orbPos: Vector2): Unit = {
@@ -243,11 +270,17 @@ class Enemy(var name: String,
   }
 
   def getHit(g: GdxGraphics, enemies: ArrayBuffer[Enemy], projectile: Projectile): Unit = {
+    val knockbackDirection = this.getPosition.cpy().sub(projectile.position)
+    val knockbackForce = projectile match {
+      case _: Bow => 50f  // Knockback léger pour les flèches
+      case _: Spear => 80f // Knockback plus fort pour les lances
+      case _ => 40f       // Valeur par défaut
+    }
+    this.applyProjectileKnockback(knockbackDirection, knockbackForce)
     if (!isDead) {
       returnSprite("hurt")
       animationLockTimer = 0.3f
       hp -= projectile.damage
-      projectile.onHit(g, enemies)
 
       if (hp <= 0) {
         isDead = true
@@ -255,6 +288,15 @@ class Enemy(var name: String,
         currentFrame = 0
         animationTimer = 0f
       }
+    }
+  }
+
+  def applyProjectileKnockback(direction: Vector2, force: Float = 50f): Unit = {
+    if (!isKnockbackActive) {
+      knockbackDir = direction.nor()
+      knockbackTargetPos = position.cpy().add(knockbackDir.scl(force))
+      knockbackTimer = knockbackDuration
+      isKnockbackActive = true
     }
   }
 

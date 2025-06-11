@@ -1,24 +1,13 @@
-package ch.hevs.gdx2d.hello
+package ch.hevs.gdx2d
 
-import ch.hevs.gdx2d.components.bitmaps.BitmapImage
+import ch.hevs.gdx2d.Entity.{Enemy, Player}
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import ch.hevs.gdx2d.desktop.PortableApplication
-
-import java.lang.Math
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 class WaveManager{
   private var waveNumber = 0
   private var waveBoss : Boolean = false
-  // Models for enemies + boss mudry
-  //var goblin : Enemy = new Enemy("gobelin", 0, 0, 100, 100, 250, 50, 30, 0, 10)
-  //var skeleton_distance : Enemy = new Enemy("skeleton distance", 0, 0, 50, 100, 300, 30, 20, 0)
-  //var orc : Enemy = new Enemy("orc", 0, 0, 200, 200, 200, 100, 50, 0)
-  //var skeleton: Enemy = new Enemy("skeleton", 0, 0, 50, 50, 350, 20, 15, 0)
-  //var mage: Enemy = new Enemy("mage", 0, 0, 100, 150, 250, 50, 30, 0)
-
-  //var boss_Mudry: Enemy = new Enemy("boss", 0, 0, 300, 300, 150, 5000, 80, 0)
 
   private var counterDt: Float = 2
 

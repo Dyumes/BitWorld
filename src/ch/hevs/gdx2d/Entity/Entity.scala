@@ -1,4 +1,4 @@
-package ch.hevs.gdx2d.hello
+package ch.hevs.gdx2d.Entity
 
 import ch.hevs.gdx2d.lib.GdxGraphics
 import com.badlogic.gdx.graphics.Color

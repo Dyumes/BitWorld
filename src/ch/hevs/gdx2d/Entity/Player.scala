@@ -1,11 +1,12 @@
-package ch.hevs.gdx2d.hello
+package ch.hevs.gdx2d.Entity
 
-import ch.hevs.gdx2d.components.bitmaps.{BitmapImage, Spritesheet}
-import ch.hevs.gdx2d.desktop.PortableApplication
+import ch.hevs.gdx2d.components.bitmaps.Spritesheet
 import ch.hevs.gdx2d.lib.GdxGraphics
-import com.badlogic.gdx.{Gdx, Input}
+import ch.hevs.gdx2d.weapons_abilities._
+import ch.hevs.gdx2d.Entity.Enemy
 import com.badlogic.gdx.graphics.{Color, OrthographicCamera}
 import com.badlogic.gdx.math.{Interpolation, Vector2}
+import com.badlogic.gdx.{Gdx, Input}
 
 import scala.collection.mutable.ArrayBuffer
 /**
@@ -35,6 +36,7 @@ class Player(
   private var currentZoom : Float= 0.6f
   private var lastPressed = "down"
   private var animationLockTimer = 0f
+  private var fastSpeed: Int = speed
 
   private var knockbackDir = new Vector2(0, 0)
   private var knockbackTimer = 0f
@@ -50,7 +52,10 @@ class Player(
   var projectiles : ArrayBuffer[Projectile] = ArrayBuffer[Projectile]()
   var weapons : ArrayBuffer[Weapon] = ArrayBuffer[Weapon]()
 
+
   val orbs = ArrayBuffer[Orb]()
+
+  var debugMode : Boolean = false
 
   def addOrb(): Unit = {
     orbs += new Orb()
@@ -99,21 +104,46 @@ class Player(
     weaponTargets.toMap
   }
 
+  var isLevelingUp : Boolean = false
+  val xpLevel : Array[Int] = Array(5000, 15000, 40000, 75000, 150000)
+
 
   // Update the position of the player matching to input
   def update(dt: Float, playerPos: Vector2 = null, enemies : ArrayBuffer[Enemy]): Unit = {
+    isLevelingUp = false
 
-    if(xp >= 5000 && xp <= 15000){
+    if(xp >= xpLevel(0) && xp <= xpLevel(1)){
       lvl = 2
-    } else if (xp >= 15000 && xp <= 40000){
+      if (xp == xpLevel(0)){
+        isLevelingUp = true
+        xp += 1
+      }
+    } else if (xp >= xpLevel(1) && xp <= xpLevel(2)){
       lvl = 3
-    } else if (xp >= 40000 && xp <= 75000){
+      if (xp == xpLevel(1)){
+        isLevelingUp = true
+        xp += 1
+      }
+    } else if (xp >= xpLevel(2) && xp <= xpLevel(3)){
       lvl = 4
-    } else if (xp >= 75000 && xp <= 150000){
+      if (xp == xpLevel(2)){
+        isLevelingUp = true
+        xp += 1
+      }
+    } else if (xp >= xpLevel(3) && xp <= xpLevel(4)){
       lvl = 5
-    } else if (xp >= 150000){
+      if (xp == xpLevel(3)){
+        isLevelingUp = true
+        xp += 1
+      }
+    } else if (xp >= xpLevel(4)){
       lvl = 6
+      if (xp == xpLevel(4)){
+        isLevelingUp = true
+        xp += 1
+      }
     }
+
     if (hp <= 0){
       println("GAME OVER")
 
@@ -132,39 +162,37 @@ class Player(
         val up    = Gdx.input.isKeyPressed(Input.Keys.W)
         val down  = Gdx.input.isKeyPressed(Input.Keys.S)
 
-        val weapon1 = Gdx.input.isKeyPressed(Input.Keys.NUM_1)
-        val weapon2 = Gdx.input.isKeyPressed(Input.Keys.NUM_2)
-        val weapon3 = Gdx.input.isKeyPressed(Input.Keys.NUM_3)
-        val weapon4 = Gdx.input.isKeyPressed(Input.Keys.NUM_4)
-        val xp3 = Gdx.input.isKeyPressed(Input.Keys.NUM_8)
-        val xp4 = Gdx.input.isKeyPressed(Input.Keys.NUM_9)
+        //Only for debug
+        if(debugMode == true){
+          val weapon1 = Gdx.input.isKeyPressed(Input.Keys.NUM_1)
+          val weapon2 = Gdx.input.isKeyPressed(Input.Keys.NUM_2)
+          val weapon3 = Gdx.input.isKeyPressed(Input.Keys.NUM_3)
+          val xp3 = Gdx.input.isKeyPressed(Input.Keys.NUM_8)
+          val xp4 = Gdx.input.isKeyPressed(Input.Keys.NUM_9)
 
-        // TODO: Only for debugs
-        if (xp3 == true){
-          xp = 40000
-        } else if (xp4 == true){
-          xp = 140000
+          if (xp3 == true){
+            xp = 40000
+          } else if (xp4 == true){
+            xp = 140000
+          }
+
+          if (weapon1 && !weapon1WasPressed) {
+            weapons += new Bow
+          }
+          weapon1WasPressed = weapon1
+
+          if (weapon2 && !weapon2WasPressed) {
+            weapons += new Spear
+          }
+          weapon2WasPressed = weapon2
+
+          if (weapon3 && !weapon3WasPressed) {
+            addOrb()
+          }
+          weapon3WasPressed = weapon3
         }
 
-        if (weapon1 && !weapon1WasPressed) {
-          weapons += new Bow
-        }
-        weapon1WasPressed = weapon1
 
-        if (weapon2 && !weapon2WasPressed) {
-          weapons += new Spear
-        }
-        weapon2WasPressed = weapon2
-
-        if (weapon3 && !weapon3WasPressed) {
-          addOrb()
-        }
-        weapon3WasPressed = weapon3
-
-        if (weapon4 && !weapon4WasPressed) {
-          weapons += new Wand()
-        }
-        weapon4WasPressed = weapon4
 
 
         val horizontal = (if (left)
@@ -226,8 +254,8 @@ class Player(
 
   }
 
-  def getHp(): Int = hp
-  def getHpMax(): Int = hpMax
+  def getHp : Int = hp
+  def getHpMax : Int = hpMax
 
 
   // TODO : Placeholder to check drawing and movement logic, need to be change
@@ -286,7 +314,6 @@ class Player(
   //other weapons
   private var bow: Weapon = new Bow()
   private var spear: Weapon = new Bow()
-  private var wand: Weapon = new Wand()
 
   def setWeapon(w: Weapon): Unit = {
     weapon = w
@@ -346,14 +373,8 @@ class Player(
     }
   }
 
-  def getHpPercent(): Float = getHp().toFloat / getHpMax()
-
   def getLevel(): Int = {
     return lvl
-  }
-
-  def getZoom(): Float = {
-    return currentZoom
   }
 
   private var animationTimer = 0f
@@ -403,4 +424,26 @@ class Player(
     val img = ss.sprites(dirIndex)(currentFrame)
     g.draw(img, position.x - SPRITE_WIDTH/2, position.y - SPRITE_HEIGHT/2)
   }
+
+
+  private var cooldownTimer = 0f
+  private var cooldownDuration = 0.2f
+
+  def setAttackSpeed(modifier: Float): Float = {
+    cooldownDuration -= modifier
+    cooldownDuration
+  }
+
+  def getSpeed(): Int = {
+    return fastSpeed
+  }
+
+  def setSpeed(fast: Int): Unit = {
+    fastSpeed += fast
+  }
+
+  def setHealth(heal: Int): Unit = {
+    hp += heal
+  }
+
 }
