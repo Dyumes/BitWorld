@@ -9,7 +9,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.g2d.{BitmapFont, SpriteBatch}
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
-import com.badlogic.gdx.graphics.{Color, OrthographicCamera}
+import com.badlogic.gdx.graphics.{Color, OrthographicCamera, Texture}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -20,24 +20,28 @@ object Main {
 }
 
 class Main extends PortableApplication(1920, 1080) {
-  private var imgBitmap: BitmapImage = null
-  private var background : BitmapImage = null
-  private var backgroundDrew : Boolean = false
+  private var menuManager: MenuManager = _
 
+  private var background : BitmapImage = _
+  private var nbrKillImage: Texture = _
+  private var bowImage: Texture = _
+  private var spearImage: Texture = _
+  private var orbImage: Texture = _
 
+  private var damage_zone : BitmapImage = _
+  private var zoneRotationAngle: Float = 0f
 
-  private val player : Player = new Player(100, 100, 60, 60, 200, 200000, 20, 0)
-  private var firstLaunch : Boolean = true
+  private val player : Player = new Player(0, 0, 32, 32, 200, 200000, 20, 0)
   private val enemies : ArrayBuffer[Enemy] = ArrayBuffer[Enemy]()
   private val Wave = new WaveManager
 
   private val Abilties : ArrayBuffer[Ability] = ArrayBuffer[Ability]()
-  val hpBoost : healthBoost = new healthBoost(player)
-  val dmgBoost : damageBoost = new damageBoost(player)
-  val prcBoost : piercingBoost = new piercingBoost(player)
-  val spdBoost : speedBoost = new speedBoost(player)
-  val asBoost : attackSpeedBoost = new attackSpeedBoost(player)
-  val Stinky : stinky = new stinky(player, enemies)
+  private val hpBoost : healthBoost = new healthBoost(player)
+  private val dmgBoost : damageBoost = new damageBoost(player)
+  private val prcBoost : piercingBoost = new piercingBoost(player)
+  private val spdBoost : speedBoost = new speedBoost(player)
+  private val asBoost : attackSpeedBoost = new attackSpeedBoost(player)
+  val Stinky : Zone = new Zone(player, enemies)
   Abilties.append(hpBoost)
   Abilties.append(dmgBoost)
   Abilties.append(prcBoost)
@@ -45,14 +49,18 @@ class Main extends PortableApplication(1920, 1080) {
   Abilties.append(asBoost)
   Abilties.append(Stinky)
   private var showAbilityMenu = true
-  private var arAbilities: ArrayBuffer[Ability] = new ArrayBuffer()
+  private var showWeaponMenu = false
+  private val arAbilities: ArrayBuffer[Ability] = new ArrayBuffer()
 
 
 
-  val menu = new AbilityMenu(
+  private val menu = new AbilityMenu(
     player,
     List(dmgBoost, spdBoost, hpBoost, asBoost, prcBoost, Stinky)
   )
+  private var menuTransitionDelay = 0f
+
+
 
   //For UI
   private var uiBatch: SpriteBatch = _
@@ -63,41 +71,81 @@ class Main extends PortableApplication(1920, 1080) {
   private var bossHp: Int = 0
   private var bossHpMax : Int = 0
 
+  private var firstTimeChoosingAbilities = true
+
+  private var mapWidth: Int = 0
+  private var mapHeight: Int = 0
 
   override def onInit(): Unit = {
     setTitle("BitWorld")
     // Load a custom image (or from the lib "res/lib/icon64.png")
     background = new BitmapImage("data/images/map.png")
+    mapWidth = background.getImage.getWidth
+    mapHeight = background.getImage.getHeight
+    damage_zone = new BitmapImage("data/images/abilities/damage_zone.png")
+
+    nbrKillImage = new Texture(Gdx.files.internal("data/images/UI/nbr_kill.png"))
+    bowImage = new Texture(Gdx.files.internal("data/images/weapons/bow.png"))
+    spearImage = new Texture(Gdx.files.internal("data/images/weapons/projectiles/spear.png"))
+    orbImage = new Texture(Gdx.files.internal("data/images/weapons/orb.png"))
+
     uiBatch = new SpriteBatch()
     uiCamera = new OrthographicCamera()
     uiCamera.setToOrtho(false, getWindowWidth, getWindowHeight)
     uiFont = new BitmapFont()
     uiShapes = new ShapeRenderer()
+
+    menuManager = new MenuManager()
+
+
   }
   /**
    * This method is called periodically by the engine
-   *
+   *1
    * @param g
    */
 
   override def onGraphicRender(g: GdxGraphics): Unit = {
+    menuManager.update()
+    if (menuManager.isMenuActive) {
+      menuManager.draw()
+      return
+    }
+
     val dt = Gdx.graphics.getDeltaTime
+
+    if (menuTransitionDelay > 0) {
+      menuTransitionDelay -= dt
+    }
     val debug : Boolean = player.debugMode
 
     if(Gdx.input.isKeyJustPressed(Keys.TAB)){
       player.debugMode = !player.debugMode
     }
+    if(debug){
+      if(Gdx.input.isKeyJustPressed(Keys.R)){
+        enemies.clear()
+      }
+      if(Gdx.input.isKeyJustPressed(Keys.T)){
+        arAbilities.clear()
+      }
+      if(Gdx.input.isKeyJustPressed(Keys.Z)){
+        player.weapons.clear()
+        player.addWeapon("bow")
+      }
+    }
 
     // Clears the screen
     g.clear()
     g.drawPicture(0, 0, background)
+    g.drawPicture(6400, 0, background)
+    g.drawPicture(-6400, 0, background)
+    g.drawPicture(0, 6400, background)
+    g.drawPicture(0, -6400, background)
 
 
 
     if (showAbilityMenu) {
-      println(menu.visibleAbilities(0).description)
-      println(menu.visibleAbilities(1).description)
-      println(menu.visibleAbilities(2).description)
       menu.drawAbilityChoices(g)
 
       if (Gdx.input.isKeyJustPressed(Keys.NUM_1) ||
@@ -109,33 +157,97 @@ class Main extends PortableApplication(1920, 1080) {
           case Some((_, index)) if index < menu.visibleAbilities.length =>
             val chosenAbility = menu.visibleAbilities(index)
             Abilties += chosenAbility
-            chosenAbility.setActivated() // <--- add this line
+            arAbilities += chosenAbility
+            chosenAbility.setActivated()
+
             showAbilityMenu = false
+            menuTransitionDelay = 0.2f
+
+            if (!firstTimeChoosingAbilities) {
+              println(s"IS FIRSST TIME OPENING ? $firstTimeChoosingAbilities")
+              showWeaponMenu = true
+            } else {
+              firstTimeChoosingAbilities = false
+            }
           case _ =>
         }
       }
-    } else {
+    }
+    if (showWeaponMenu && menuTransitionDelay <= 0) {
+      menu.drawWeaponChoices(g)
+
+      if (Gdx.input.isKeyJustPressed(Keys.NUM_1) ||
+        Gdx.input.isKeyJustPressed(Keys.NUM_2) ||
+        Gdx.input.isKeyJustPressed(Keys.NUM_3)) {
+        g
+
+        val keyToIndex = Map(Keys.NUM_1 -> 0, Keys.NUM_2 -> 1, Keys.NUM_3 -> 2)
+        keyToIndex.find { case (key, _) => Gdx.input.isKeyJustPressed(key) } match {
+          case Some((_, index)) =>
+            val weaponName = index match {
+              case 0 => "bow"
+              case 1 => "spear"
+              case 2 => "orb"
+            }
+            player.addWeapon(weaponName) // ou une méthode custom
+            showWeaponMenu = false
+          case _ =>
+        }
+      }
+    }
+
+    else {
 
       if (player.isLevelingUp || (Gdx.input.isKeyJustPressed(Keys.SPACE) && debug)) {
         player.isLevelingUp = false
         menu.refreshAbilities()
         showAbilityMenu = true
+        println(s"SHOW MENU : $showAbilityMenu")
         return
       }
 
-      Abilties.foreach(_.update())
+      Abilties.foreach(_.update(dt))
 
       Wave.globalEnemiesGeneration(enemies, player, dt)
       println(s"dt : $dt")
       player.getClosestEnemy(enemies)
 
       player.update(dt, null, enemies)
+
       if(Stinky.canBeDrawn) {
-        g.drawFilledCircle(player.getPosition.x, player.getPosition.y, Stinky.radius, Color.RED)
+        zoneRotationAngle += 60 * dt
+        if (zoneRotationAngle >= 360) zoneRotationAngle -= 360
+        g.drawTransformedPicture(player.getPosition.x, player.getPosition.y, zoneRotationAngle, Stinky.radius, Stinky.radius, damage_zone)
       }
 
       player.projectiles.foreach(_.update(dt))
       player.projectiles.foreach(_.draw(g))
+      if(debug){
+        for(proj <- player.projectiles){
+          val angle = proj.direction.angle()
+          g.drawRectangle(proj.position.x, proj.position.y, proj.width, proj.height, angle)
+        }
+      }
+
+      for(en <- enemies){
+        if (en.name == "boss"){
+          for (proj <- en.enemyProjectiles){
+            proj.update(dt)
+            proj.draw(g)
+            if(debug){
+              g.setColor(Color.ORANGE)
+              val angle = proj.direction.angle()
+              g.drawRectangle(proj.position.x, proj.position.y, proj.width, proj.height, angle)
+            }
+
+            if (proj.active && proj.position.dst(player.getPosition) < player.width){
+              player.getHit(proj)
+              proj.active = false
+            }
+          }
+          en.enemyProjectiles.filterInPlace(p => p.active && p.position.dst(en.getPosition) < 2000)
+        }
+      }
 
       player.projectiles.filterInPlace(p => p.active && p.position.dst(player.getPosition) < 2000)
 
@@ -143,7 +255,7 @@ class Main extends PortableApplication(1920, 1080) {
         val keep = !enemy.isReadyToBeRemoved()
         if (!keep) {
           player.addKill()
-          player.addXp(enemy.getXp())
+          player.addXp(enemy.getXp)
           println("ENEMY REMOVED")
         }
         keep
@@ -159,7 +271,7 @@ class Main extends PortableApplication(1920, 1080) {
             // Calcul de la direction du knockback
             val knockbackDirection = enemies(en).getPosition.cpy().sub(projectil.position)
             enemies(en).applyProjectileKnockback(knockbackDirection)
-            enemies(en).getHit(g, enemies, projectil)
+            enemies(en).getHit(projectil)
             projectil.onHit(enemies(en))
           }
         }
@@ -185,7 +297,7 @@ class Main extends PortableApplication(1920, 1080) {
         }
       }
 
-      player.focusCamera(g.getCamera, 1, dt)
+      player.focusCamera(g.getCamera, dt)
 
       g.drawFPS()
 
@@ -196,6 +308,7 @@ class Main extends PortableApplication(1920, 1080) {
           g.setColor(Color.RED)
           g.drawString(en.getPosition.x, en.getPosition.y, s"${en.nbr}")
           g.drawRectangle(en.getPosition.x, en.getPosition.y, en.width, en.height, 0)
+          g.drawString(en.getPosition.x, en.getPosition.y, s"hp : ${en.getHp}")
         }
       }
 
@@ -206,7 +319,7 @@ class Main extends PortableApplication(1920, 1080) {
         weapon.draw(g, dt, player.getPosition, direction)
       }
 
-      player.attack(player.getClosestEnemy(enemies), dt).draw(g)
+      player.attack(player.getClosestEnemy(enemies)).draw(g)
       player.updateOrbs(dt, enemies)
       player.drawOrbs(g, dt)
 
@@ -259,14 +372,22 @@ class Main extends PortableApplication(1920, 1080) {
       uiShapes.rect(margin + barWidth * xpPercent - 2, xpBarY - 5, 4, barHeight + 5)
       uiShapes.end()
 
-
       uiBatch.begin()
       uiFont.draw(uiBatch, s"Lvl ${player.getLevel()} (${(xpPercent * 100).toInt}%)", margin + 10, xpBarY + barHeight - 10)
-      uiFont.draw(uiBatch, s"Kills ${player.getKillCount}", margin + 10, xpBarY + barHeight - 40)
-      uiFont.draw(uiBatch, s"${player.weapons.map(_.name).mkString(", ")}\n Orbs : ${player.orbs.length}", margin + 10, xpBarY + barHeight - 70)
-      uiFont.draw(uiBatch, s"Nbr enemies : ${enemies.length}", margin + 10, xpBarY + barHeight - 100)
-      uiFont.draw(uiBatch, s"Abilities : ${arAbilities.map(_.name).mkString(", " )}", margin + 10, xpBarY + barHeight - 130)
-      uiFont.draw(uiBatch, s"Player // hp : ${player.getHp} - dmg : ${player.damage()} - speed : ${player.getSpeed()}", margin + 10, xpBarY + barHeight - 160)
+      uiBatch.draw(nbrKillImage, margin + 10, xpBarY + barHeight - 72)
+      uiFont.draw(uiBatch, s"${player.getKillCount}", margin + 40, xpBarY + barHeight - 56)
+      uiBatch.draw(bowImage, margin - 10, xpBarY + barHeight - 132)
+      uiFont.draw(uiBatch, s"${player.nbrBows()}x", margin + 40, xpBarY + barHeight - 100)
+      uiBatch.draw(spearImage, margin +70, xpBarY + barHeight - 116)
+      uiFont.draw(uiBatch, s"${player.nbrSpears()}x", margin + 110, xpBarY + barHeight - 100)
+      uiBatch.draw(orbImage, margin + 6, xpBarY + barHeight - 160)
+      uiFont.draw(uiBatch, s"${player.orbs.length}x", margin + 40, xpBarY + barHeight - 150)
+      uiFont.draw(uiBatch, s"Abilities : ${arAbilities.map(_.name).mkString(", " )}", margin + 10, xpBarY + barHeight - 200)
+      if(debug) {
+        uiFont.draw(uiBatch, s"Nbr enemies : ${enemies.length}", margin + 10, xpBarY + barHeight - 260)
+        uiFont.draw(uiBatch, s"Player // hp : ${player.getHp} - dmg : ${player.damage()} - speed : ${player.getSpeed()}", margin + 10, xpBarY + barHeight - 230)
+      }
+
 
       uiBatch.end()
 
@@ -287,8 +408,8 @@ class Main extends PortableApplication(1920, 1080) {
     if (player.getLevel() >= 6) {
       for(en <- enemies){
         if (en.name == "boss"){
-          bossHp = en.getHp()
-          bossHpMax = en.getHpMax()
+          bossHp = en.getHp
+          bossHpMax = en.getHpMax
         }
       }
       // Barre de vie du boss
@@ -311,7 +432,6 @@ class Main extends PortableApplication(1920, 1080) {
         uiShapes.end()
       }
 
-11
       // Contour
       uiShapes.begin(ShapeRenderer.ShapeType.Line)
       uiShapes.setColor(Color.BLACK)
@@ -320,15 +440,22 @@ class Main extends PortableApplication(1920, 1080) {
 
       // Texte au centre
       uiBatch.begin()
-      uiFont.draw(uiBatch, s"BOSS HP: ${bossHp.toInt} / ${bossHpMax.toInt}", bossBarX + 10, bossBarY + bossBarHeight - 5)
+      uiFont.draw(uiBatch, s"Mudry", bossBarX + bossBarWidth/ 2, bossBarY + bossBarHeight / 2 + 30)
+      uiFont.draw(uiBatch, s"${bossHp.toInt} / ${bossHpMax.toInt}", bossBarX + 10, bossBarY + bossBarHeight - 5)
       uiBatch.end()
     }
+    /*
+    if (player.getLevel() >= 6) {
+      val bossIsDead = !enemies.exists(e => e.name == "boss" && e.isAlive())
+      if (bossIsDead && !menuManager.isMenuActive) {
+        val victoryMenu = new VictoryMenu(uiFont, uiBatch, uiCamera)
+        menuManager.setMenu(victoryMenu)
+        return
+      }
+    }
 
-    /**
-     * Compute time percentage for making a looping animation
-     *
-     * @return the current normalized time
      */
+
 
   }
 }

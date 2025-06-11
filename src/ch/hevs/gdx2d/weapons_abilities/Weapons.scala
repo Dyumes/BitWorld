@@ -4,16 +4,15 @@ import ch.hevs.gdx2d.Entity.Enemy
 import ch.hevs.gdx2d.components.bitmaps.BitmapImage
 import ch.hevs.gdx2d.lib.GdxGraphics
 import com.badlogic.gdx.math.Vector2
-
 import scala.collection.mutable.ArrayBuffer
 
-abstract class Weapon(val name: String, val baseDmg: Int) {
+abstract class Weapon(val name: String) {
   def range: Float
   var dmg : Int
   def attackSpeed: Float
   var piercePower : Int = 1
-  private val enemiesHit = scala.collection.mutable.Set[Enemy]()
   val description : String = ""
+  var debug = false
 
 
   private var cooldownTimer: Float = 0f
@@ -32,8 +31,7 @@ abstract class Weapon(val name: String, val baseDmg: Int) {
   def draw(g: GdxGraphics, dt: Float, position: Vector2, direction: Vector2): Unit = {}
 }
 
-
-class Bow() extends Weapon("Bow", 20) {
+class Bow() extends Weapon("Bow") {
   override val range: Float = 1000
   override var dmg: Int = 20
   override val attackSpeed = 2f
@@ -41,11 +39,8 @@ class Bow() extends Weapon("Bow", 20) {
   private val projectilSpeed: Float = 1500
   override val description: String = "A bow shooting one arrow at a time"
 
-  private var imageLoaded: Boolean = false
-  var image: BitmapImage = null
-
   // Direction actuelle interpolée
-  private var currentDirection: Vector2 = new Vector2(1, 0)
+  private val currentDirection: Vector2 = new Vector2(1, 0)
 
   override def attack(position: Vector2, direction: Vector2): Projectile = {
     println("BOW ATTACK")
@@ -54,13 +49,7 @@ class Bow() extends Weapon("Bow", 20) {
     new Projectile(startPos, direction.nor(), "arrow", projectilSpeed, dmg, piercing)
   }
 
-  def isEquiped(): Boolean = false
-
   override def draw(g: GdxGraphics, dt: Float, position: Vector2, direction: Vector2): Unit = {
-    if (!imageLoaded) {
-      image = new BitmapImage("data/images/weapons/bow.png")
-      imageLoaded = true
-    }
 
     // Interpolation vers la direction cible
     val targetDirection = direction.cpy().nor()
@@ -70,11 +59,11 @@ class Bow() extends Weapon("Bow", 20) {
     val drawPos = new Vector2(position).add(currentDirection.cpy().scl(50f))
     val angle = currentDirection.angle()
 
-    g.drawTransformedPicture(drawPos.x, drawPos.y, angle, 1f, image)
+    g.drawTransformedPicture(drawPos.x, drawPos.y, angle, 1f, ProjectileAssets.bowImage)
   }
 }
 
-class Spear() extends Weapon("Spear", 30){
+class Spear() extends Weapon("Spear"){
   override val range : Float = 1000
   override var dmg : Int = 30
   override val attackSpeed = 1f
@@ -88,13 +77,9 @@ class Spear() extends Weapon("Spear", 30){
     val startPos = position.cpy().add(direction.cpy().nor().scl(offset))
     new Projectile(startPos, direction.nor(), "spear", projectilSpeed, dmg, piercing)
   }
-
-  def isEquiped(): Boolean = {
-    return false
-  }
 }
 
-class Orb() extends Weapon("Orb", 50) {
+class Orb() extends Weapon("Orb") {
   override val range: Float = 10f //only for weapon class match
   override val attackSpeed: Float = 0.5f //only for weapon class match
 
@@ -105,7 +90,7 @@ class Orb() extends Weapon("Orb", 50) {
   private val distanceFromPlayer: Float = 100
   override val description: String = "An orbiting orb dealing damage to any near enemies"
 
-  private var image: BitmapImage = new BitmapImage("data/images/weapons/orb.png")
+  private val image: BitmapImage = new BitmapImage("data/images/weapons/orb.png")
 
   private val currentContacts = scala.collection.mutable.Set[Enemy]()
 
@@ -164,7 +149,6 @@ class Projectile(
   def isCollidingWith(enemy: Enemy): Boolean = {
     // Si on a déjà touché cet ennemi, pas de nouvelle collision
     if (enemiesAlreadyHit.contains(enemy)) false
-    // Si c'est un nouvel ennemi ou si on a quitté le précédent
     else currentEnemyHit match {
       case None => true
       case Some(e) if e != enemy => true
@@ -196,13 +180,28 @@ class Projectile(
   def draw(g: GdxGraphics): Unit = {
     form match {
       case "arrow" =>
-        //g.drawFilledCircle(position.x, position.y, 5f, Color.GREEN)
-        g.drawTransformedPicture(position.x, position.y, direction.angle(), 1f, new BitmapImage("data/images/weapons/projectiles/placeholder_arrow.png"))
+        g.drawTransformedPicture(position.x, position.y, direction.angle(), 1f, ProjectileAssets.arrowImage)
       case "spear" =>
-        g.drawTransformedPicture(position.x, position.y, direction.angle(), 1f, new BitmapImage("data/images/weapons/projectiles/spear.png"))
+        g.drawTransformedPicture(position.x, position.y, direction.angle(), 1f, ProjectileAssets.spearImage)
+      case "scala" =>
+        g.drawTransformedPicture(position.x, position.y, direction.angle(), 1f, ProjectileAssets.scalaImage)
       case _ =>
         println("OTHER TYPE OF PROJECTILE")
     }
 
+  }
+
+  def width: Float = form match {
+    case "scala" => ProjectileAssets.scalaWidth.toFloat
+    case "arrow" => ProjectileAssets.arrowWidth.toFloat
+    case "spear" => ProjectileAssets.spearWidth.toFloat
+    case _ => 10f
+  }
+
+  def height: Float = form match {
+    case "scala" => ProjectileAssets.scalaHeight.toFloat
+    case "arrow" => ProjectileAssets.arrowHeight.toFloat
+    case "spear" => ProjectileAssets.spearHeight.toFloat
+    case _ => 10f
   }
 }
