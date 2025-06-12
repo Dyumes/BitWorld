@@ -218,8 +218,6 @@ class Player(
         }
 
 
-
-
         val horizontal = (if (left)
           {
             lastPressed = "left"
@@ -314,7 +312,6 @@ class Player(
 
   def getHit(ennemy: Enemy): Unit = {
     lastPressed = "hit"
-    //ss = new Spritesheet("data/images/goblin/orc1_hurt_full.png", SPRITE_WIDTH, SPRITE_HEIGHT)
     hp -= ennemy.damage()
     hpToDraw += (hp * 100 / hpMax) - hpToDraw
     println(s"PLAY")
@@ -340,7 +337,7 @@ class Player(
     this.applyProjectileKnockback(knockbackDirection, knockbackForce)
     if (hp > 0) {
       animationLockTimer = 0.3f
-      hp -= 1000
+      hp -= 10000
       isKnockbackActive = false
 
       if (hp <= 0) {
@@ -350,7 +347,7 @@ class Player(
     }
   }
   //first weapon
-  private val weapon: Weapon = new Bow()
+  private val weapon: Weapon = new Spear()
   weapons += weapon
 
   //other weapons

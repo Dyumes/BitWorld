@@ -77,6 +77,8 @@ class Enemy(var name: String,
     !isDead
   }
 
+  var isSpawned : Boolean = false
+
   private def returnSprite(state: String): Unit = {
     if (state == "alive"){
       name match {
@@ -186,6 +188,7 @@ class Enemy(var name: String,
           // Spray en cours
           sprayIntervalTimer -= dt
           if (sprayIntervalTimer <= 0f) {
+
             sprayIntervalTimer = sprayInterval
 
             val elapsed = sprayDuration - sprayTimer
@@ -200,27 +203,26 @@ class Enemy(var name: String,
           }
 
           sprayTimer -= dt
+          println(s"SprayTimer : $sprayTimer")
           if (sprayTimer <= 0f) {
             sprayActive = false
             sprayCooldownTimer = sprayCooldown  // lance le cooldown entre sprays
           }
 
-        } else if (sprayCooldownTimer > 0f) {
-          // Cooldown entre sprays
-          sprayCooldownTimer -= dt
-
-        } else if (canRangedAttack(dt)) {
+        } else if (canRangedAttack(dt) && sprayCooldownTimer > 0f) {
           // Attaque classique (hors spray)
+          println("RANGE ATTACK")
           isAttacking = true
           val baseDir = playerPos.cpy().sub(getPosition).nor()
-          val angles = Seq(-15f, 0f, 15f)
+          val angles = Seq(-30f, -15f, 0f, 15f, 30f)
 
           angles.foreach { angle =>
             val dir = baseDir.cpy().setAngle(baseDir.angle() + angle).nor()
-            val projectile = new Projectile(getPosition.cpy(), dir, "scala", 300f, 1000, 1)
+            val projectile = new Projectile(getPosition.cpy(), dir, "scala", 300f, 10000, 1)
             enemyProjectiles += projectile
           }
         }
+        sprayCooldownTimer -= dt
 
         // Déclenchement du spray uniquement si pas actif ET cooldown terminé
         if (!sprayActive && sprayCooldownTimer <= 0f) {
@@ -332,6 +334,8 @@ class Enemy(var name: String,
     }
   }
 
+
+
   def getHit(projectile: Projectile): Unit = {
     val knockbackDirection = this.getPosition.cpy().sub(projectile.position)
     val knockbackForce = projectile match {
@@ -368,7 +372,7 @@ class Enemy(var name: String,
   def canRangedAttack(dt: Float): Boolean = {
     rangedCooldown -= dt
     if (rangedCooldown <= 0f) {
-      rangedCooldown = 1f / rangedAttackSpeed
+      rangedCooldown = 2f
       true
     } else false
   }

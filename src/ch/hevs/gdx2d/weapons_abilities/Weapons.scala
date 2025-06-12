@@ -34,7 +34,7 @@ abstract class Weapon(val name: String) {
 class Bow() extends Weapon("Bow") {
   override val range: Float = 1000
   override var dmg: Int = 20
-  override val attackSpeed = 2f
+  override val attackSpeed = 1.5f
   private val piercing: Int = 1
   private val projectilSpeed: Float = 1500
   override val description: String = "A bow shooting one arrow at a time"
@@ -66,7 +66,7 @@ class Bow() extends Weapon("Bow") {
 class Spear() extends Weapon("Spear"){
   override val range : Float = 1000
   override var dmg : Int = 30
-  override val attackSpeed = 1f
+  override val attackSpeed = 0.5f
   private val piercing : Int = 2
   private val projectilSpeed : Float = 300
   override val description: String = "A spear piercing 2 times"

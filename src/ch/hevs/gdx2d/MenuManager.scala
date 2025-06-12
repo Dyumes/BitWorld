@@ -65,7 +65,8 @@ class MainMenu(
 class VictoryMenu(
                    uiFont: BitmapFont,
                    uiBatch: SpriteBatch,
-                   uiCamera: OrthographicCamera
+                   uiCamera: OrthographicCamera,
+                   g: GdxGraphics
                  ) extends GameMenu {
   private var finished = false
 
@@ -76,6 +77,7 @@ class VictoryMenu(
   }
 
   override def draw(): Unit = {
+    g.clear()
     uiCamera.update()
     uiBatch.setProjectionMatrix(uiCamera.combined)
 

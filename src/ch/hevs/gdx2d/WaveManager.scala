@@ -127,6 +127,7 @@ class WaveManager{
             val x = position.x + range * Math.cos(angle).toFloat
             val y = position.y + range * Math.sin(angle).toFloat
             val boss_Mudry: Enemy = new Enemy("boss", x, y, 256, 256, 150, 5000, 5000, 0)
+            boss_Mudry.isSpawned = true
             enemies += boss_Mudry
           }
           waveBoss = true

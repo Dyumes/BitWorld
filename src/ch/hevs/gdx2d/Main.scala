@@ -31,7 +31,7 @@ class Main extends PortableApplication(1920, 1080) {
   private var damage_zone : BitmapImage = _
   private var zoneRotationAngle: Float = 0f
 
-  private val player : Player = new Player(0, 0, 32, 32, 200, 200000, 20, 0)
+  private val player : Player = new Player(0, 0, 32, 32, 200, 100000, 20, 0)
   private val enemies : ArrayBuffer[Enemy] = ArrayBuffer[Enemy]()
   private val Wave = new WaveManager
 
@@ -123,6 +123,7 @@ class Main extends PortableApplication(1920, 1080) {
       player.debugMode = !player.debugMode
     }
     if(debug){
+      player.setHealth(player.getHpMax - player.getHp)
       if(Gdx.input.isKeyJustPressed(Keys.R)){
         enemies.clear()
       }
@@ -131,7 +132,7 @@ class Main extends PortableApplication(1920, 1080) {
       }
       if(Gdx.input.isKeyJustPressed(Keys.Z)){
         player.weapons.clear()
-        player.addWeapon("bow")
+        player.addWeapon("spear")
       }
     }
 
@@ -179,7 +180,7 @@ class Main extends PortableApplication(1920, 1080) {
       if (Gdx.input.isKeyJustPressed(Keys.NUM_1) ||
         Gdx.input.isKeyJustPressed(Keys.NUM_2) ||
         Gdx.input.isKeyJustPressed(Keys.NUM_3)) {
-        g
+
 
         val keyToIndex = Map(Keys.NUM_1 -> 0, Keys.NUM_2 -> 1, Keys.NUM_3 -> 2)
         keyToIndex.find { case (key, _) => Gdx.input.isKeyJustPressed(key) } match {
@@ -189,7 +190,7 @@ class Main extends PortableApplication(1920, 1080) {
               case 1 => "spear"
               case 2 => "orb"
             }
-            player.addWeapon(weaponName) // ou une méthode custom
+            player.addWeapon(weaponName)
             showWeaponMenu = false
           case _ =>
         }
@@ -202,7 +203,6 @@ class Main extends PortableApplication(1920, 1080) {
         player.isLevelingUp = false
         menu.refreshAbilities()
         showAbilityMenu = true
-        println(s"SHOW MENU : $showAbilityMenu")
         return
       }
 
@@ -444,17 +444,20 @@ class Main extends PortableApplication(1920, 1080) {
       uiFont.draw(uiBatch, s"${bossHp.toInt} / ${bossHpMax.toInt}", bossBarX + 10, bossBarY + bossBarHeight - 5)
       uiBatch.end()
     }
-    /*
+
     if (player.getLevel() >= 6) {
-      val bossIsDead = !enemies.exists(e => e.name == "boss" && e.isAlive())
-      if (bossIsDead && !menuManager.isMenuActive) {
-        val victoryMenu = new VictoryMenu(uiFont, uiBatch, uiCamera)
-        menuManager.setMenu(victoryMenu)
-        return
+      for(en <- enemies){
+        if(en.name == "boss" && en.isSpawned){
+          val bossIsDead = !enemies.exists(e => e.name == "boss" && e.isAlive())
+          if (bossIsDead && !menuManager.isMenuActive) {
+            val victoryMenu = new VictoryMenu(uiFont, uiBatch, uiCamera, g)
+            menuManager.setMenu(victoryMenu)
+            g.clear()
+            return
+          }
+        }
       }
     }
-
-     */
 
 
   }
