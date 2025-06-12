@@ -37,7 +37,7 @@ The main components of the game include:
 
 1. Clone this repository
 2. Make sure you have [Scala](https://www.scala-lang.org/download/) and [sbt](https://www.scala-sbt.org/download.html) installed
-3. Run the application via your IDE
+3. Run the Main via your IDE
 
 The game runs in a 1920x1080 window.
 
@@ -48,6 +48,10 @@ The game runs in a 1920x1080 window.
 Developed by Dyumes and Skitaarii
 
 ---
+
+https://github.com/user-attachments/assets/cf43e5f2-2a99-4a8b-8bf1-cc9bde326caf
+
+
 
 ## Screenshots
 
