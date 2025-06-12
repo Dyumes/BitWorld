@@ -56,3 +56,9 @@ https://github.com/user-attachments/assets/cf43e5f2-2a99-4a8b-8bf1-cc9bde326caf
 ## Screenshots
 
 TODO
+<img width="963" alt="wave5_png" src="https://github.com/user-attachments/assets/e6e8b281-2721-4cdc-a91b-b858bc63d10b" />
+<img width="959" alt="choose_weapon" src="https://github.com/user-attachments/assets/a40fed4e-1b0f-4882-8129-67629c42c6ef" />
+<img width="961" alt="debug_activated" src="https://github.com/user-attachments/assets/0cd64f38-eefb-43af-a530-7e10e658f63c" />
+<img width="221" alt="inventory" src="https://github.com/user-attachments/assets/08a60e45-ed60-494f-aa0e-5af8646cb37d" />
+
+<img width="962" alt="choose_ability" src="https://github.com/user-attachments/assets/bbcc7882-963b-44c6-9c2b-8bcfed10492e" />
