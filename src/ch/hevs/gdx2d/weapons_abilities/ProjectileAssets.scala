@@ -1,6 +1,7 @@
 package ch.hevs.gdx2d.weapons_abilities
 import ch.hevs.gdx2d.components.bitmaps.BitmapImage
 
+// Assets image of all projectiles and weapons
 object ProjectileAssets {
   val scalaImage = new BitmapImage("data/images/boss/scala.png")
   val scalaWidth = scalaImage.getImage.getWidth

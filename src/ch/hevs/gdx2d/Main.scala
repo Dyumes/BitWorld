@@ -20,7 +20,7 @@ import scala.collection.mutable.ArrayBuffer
  * Date : 12.06.2025
  * Start : 28.05.2025
  *
- * Description : This game is fully inspired by vampire survivor like game. The main goal of it is surviving
+ * Description : This game is fully inspired by vampire survivor like games. The main goal of it is surviving
  * waves of differents kind of enemies, increasing player's abilities and weapons at each level. At level 6, the last
  * wave appears to reveal the boss.
  *
@@ -35,7 +35,7 @@ object Main {
 }
 
 class Main extends PortableApplication(1920, 1080) {
-  // -- DECLARATION OF VARIABLES --
+  // -- Declaration of variables --
   // menu manager declaration to show victory/lose menu at the end
   private var menuManager: MenuManager = _
 
