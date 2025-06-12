@@ -1,5 +1,6 @@
 package ch.hevs.gdx2d
 
+import ch.hevs.gdx2d.Entity.Player
 import ch.hevs.gdx2d.lib.GdxGraphics
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
@@ -66,7 +67,8 @@ class VictoryMenu(
                    uiFont: BitmapFont,
                    uiBatch: SpriteBatch,
                    uiCamera: OrthographicCamera,
-                   g: GdxGraphics
+                   g: GdxGraphics,
+                   player: Player
                  ) extends GameMenu {
   private var finished = false
 
@@ -83,7 +85,12 @@ class VictoryMenu(
 
     uiBatch.begin()
     uiFont.getData.setScale(3f)
-    uiFont.draw(uiBatch, "VICTORY! Appuyez sur ESC pour quitter", 400, 540)
+    if(player.isAlive){
+      uiFont.draw(uiBatch, "VICTORY! Press ESC to quit", 400, 540)
+    } else {
+      uiFont.draw(uiBatch, "GAME OVER", 400, 540)
+    }
+
     uiBatch.end()
   }
 

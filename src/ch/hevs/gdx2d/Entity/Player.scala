@@ -13,7 +13,6 @@ import scala.collection.mutable.ArrayBuffer
  * A Player class for controlling the player and the camera following all along
  *
  */
-
 class Player(
               x: Float,
               y: Float,

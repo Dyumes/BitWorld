@@ -85,39 +85,41 @@ class WaveManager{
           }
           counterDt = 2 * Random.nextFloat()
         case 5 =>
-          for (en <- 0 to 2) {
-            val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * en / 10
-            val range: Float = Random.nextFloat() * 500 + radius
-            val x = position.x + range * Math.cos(angle).toFloat
-            val y = position.y + range * Math.sin(angle).toFloat
-            val goblin: Enemy = new Enemy("goblin", x, y, 45, 45, 180, 50, 30, en)
-            enemies += goblin
+          if(enemies.length <= 500){
+            for (en <- 0 to 2) {
+              val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * en / 10
+              val range: Float = Random.nextFloat() * 500 + radius
+              val x = position.x + range * Math.cos(angle).toFloat
+              val y = position.y + range * Math.sin(angle).toFloat
+              val goblin: Enemy = new Enemy("goblin", x, y, 45, 45, 180, 50, 30, en)
+              enemies += goblin
+            }
+            for (en <- 0 to 2) {
+              val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * en / 10
+              val range : Float = Random.nextFloat() * 500 + radius
+              val x = position.x + range * Math.cos(angle).toFloat
+              val y = position.y + range * Math.sin(angle).toFloat
+              val orc : Enemy = new Enemy("orc", x, y, 60, 60, 150, 200, 50, 0)
+              enemies += orc
+            }
+            for (en <- 0 to 2) {
+              val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * en / 10
+              val range : Float = Random.nextFloat() * 500 + radius
+              val x = position.x + range * Math.cos(angle).toFloat
+              val y = position.y + range * Math.sin(angle).toFloat
+              val skeleton: Enemy = new Enemy("skeleton", x, y, 50, 60, 200, 20, 15, 0)
+              enemies += skeleton
+            }
+            for (en <- 0 to 1) {
+              val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * en / 10
+              val range : Float = Random.nextFloat() * 500 + radius
+              val x = position.x + range * Math.cos(angle).toFloat
+              val y = position.y + range * Math.sin(angle).toFloat
+              val wizard: Enemy = new Enemy("wizard", x, y, 60, 60, 180, 50, 30, 0)
+              enemies += wizard
+            }
+            counterDt = 2 * Random.nextFloat()
           }
-          for (en <- 0 to 2) {
-            val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * en / 10
-            val range : Float = Random.nextFloat() * 500 + radius
-            val x = position.x + range * Math.cos(angle).toFloat
-            val y = position.y + range * Math.sin(angle).toFloat
-            val orc : Enemy = new Enemy("orc", x, y, 60, 60, 150, 200, 50, 0)
-            enemies += orc
-          }
-          for (en <- 0 to 2) {
-            val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * en / 10
-            val range : Float = Random.nextFloat() * 500 + radius
-            val x = position.x + range * Math.cos(angle).toFloat
-            val y = position.y + range * Math.sin(angle).toFloat
-            val skeleton: Enemy = new Enemy("skeleton", x, y, 50, 60, 200, 20, 15, 0)
-            enemies += skeleton
-          }
-          for (en <- 0 to 1) {
-            val angle = Random.nextFloat() * 2 * Math.PI.toFloat + 2 * Math.PI.toFloat * en / 10
-            val range : Float = Random.nextFloat() * 500 + radius
-            val x = position.x + range * Math.cos(angle).toFloat
-            val y = position.y + range * Math.sin(angle).toFloat
-            val wizard: Enemy = new Enemy("wizard", x, y, 60, 60, 180, 50, 30, 0)
-            enemies += wizard
-          }
-          counterDt = 2 * Random.nextFloat()
         case 6 =>
           println("BOSS WAVE")
           if (!waveBoss){
